@@ -17,4 +17,6 @@ jobs:
     - name: Build the jar
       run: ./gradlew shadowJar
     - name: Build the Docker image
-      run: docker build -t happy .
+      run: docker build -t ghcr.io/goyozi/happy .
+    - name: Push image to registry
+      run: docker push ghcr.io/goyozi/happy
