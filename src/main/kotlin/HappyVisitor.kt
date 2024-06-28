@@ -53,6 +53,10 @@ class HappyVisitor: HappyBaseVisitor<Value>() {
             Value("Boolean", left.value != right.value)
         } else if (ctx.ifExpression() != null) {
             visitIfExpression(ctx.ifExpression())
+        } else if (ctx.constructor() != null) {
+            visitConstructor(ctx.constructor())
+        } else if (ctx.dotAccess() != null) {
+            visitDotAccess(ctx.dotAccess())
         } else {
             throw Error("Unimplemented expression: " + ctx.text)
         }
@@ -94,5 +98,14 @@ class HappyVisitor: HappyBaseVisitor<Value>() {
         }
 
         throw Error("Undeclared function: ${ctx.ID().text}")
+    }
+
+    override fun visitConstructor(ctx: HappyParser.ConstructorContext): Value {
+        return Value(ctx.ID().text, ctx.keyExpression().associate { it.ID().text to visitExpression(it.expression()) })
+    }
+
+    override fun visitDotAccess(ctx: HappyParser.DotAccessContext): Value {
+        return (scope.get(ctx.ID(0).text).value as Map<String, Value>)[ctx.ID(1).text]
+            ?: throw Error("${ctx.ID(0).text} does not have a member named ${ctx.ID(1).text}")
     }
 }

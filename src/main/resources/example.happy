@@ -32,3 +32,12 @@ printLine("Do I rock?!")
 //while readLine() != "no" {
 //  printLine("Everything is better than a 'no'!")
 //}
+
+data Cat {
+  name: String,
+  age: Integer
+}
+
+let tom = Cat { name: "Tom", age: 4 }
+printLine(tom.name)
+printLine(tom.age == 4)

@@ -1,10 +1,14 @@
 grammar Happy;
 
-sourceFile: (COMMENT | function | action)* EOF;
+sourceFile: (COMMENT | data | function | action)* EOF;
 
 COMMENT: '//' ~[\r\n]*;
 
 action: statement | expression;
+
+data: 'data' ID '{' (keyValue ',')* (keyValue)? '}';
+
+keyValue: ID ':' ID;
 
 function: 'function' ID '(' ID (',' ID)+ ')' '{' action* expression '}';
 
@@ -22,6 +26,8 @@ expression
     | expression NOT_EQ expression
     | call
     | ifExpression
+    | constructor
+    | dotAccess
     ;
 
 expressionBlock: '{' (action)* expression '}';
@@ -29,6 +35,12 @@ expressionBlock: '{' (action)* expression '}';
 ifExpression: 'if' expression expressionBlock 'else' expressionBlock;
 
 call: ID '(' expression? (',' expression)* ')';
+
+constructor: ID '{' (keyExpression ',')* (keyExpression)? '}';
+
+keyExpression: ID ':' expression;
+
+dotAccess: ID '.' ID;
 
 ID: [a-zA-Z]+;
 NUMBER: [0-9]+;
