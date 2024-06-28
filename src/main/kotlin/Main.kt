@@ -4,11 +4,10 @@ import HappyLexer
 import HappyParser
 import org.antlr.v4.runtime.CharStreams
 import org.antlr.v4.runtime.CommonTokenStream
+import java.io.FileInputStream
 
-class App
-
-fun main() {
-    val source = App::class.java.classLoader.getResourceAsStream("example.happy")!!
+fun main(args: Array<String>) {
+    val source = FileInputStream(args[0])
     val parser = HappyParser(CommonTokenStream(HappyLexer(CharStreams.fromStream(source))))
     val visitor = HappyVisitor()
     visitor.visitSourceFile(parser.sourceFile())
