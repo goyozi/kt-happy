@@ -11,7 +11,7 @@ class Scope {
         stack.removeLast()
     }
 
-    fun set(id: String, value: Int) {
+    fun set(id: String, value: String) {
         stack.last().bindings[id] = value
     }
 
@@ -20,5 +20,5 @@ class Scope {
 }
 
 class Layer {
-    val bindings = mutableMapOf<String, Int>()
+    val bindings = mutableMapOf<String, String>()
 }

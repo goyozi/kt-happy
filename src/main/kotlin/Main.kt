@@ -11,6 +11,5 @@ fun main() {
     val source = App::class.java.classLoader.getResourceAsStream("example.happy")!!
     val parser = HappyParser(CommonTokenStream(HappyLexer(CharStreams.fromStream(source))))
     val visitor = HappyVisitor()
-
-    println(visitor.visitSourceFile(parser.sourceFile()))
+    visitor.visitSourceFile(parser.sourceFile())
 }
