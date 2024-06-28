@@ -2,36 +2,41 @@ package io.github.goyozi.kthappy
 
 import HappyBaseVisitor
 
-class HappyVisitor: HappyBaseVisitor<String>() {
+class HappyVisitor: HappyBaseVisitor<Value>() {
     val scope = Scope()
     val functions = mutableMapOf<String, HappyParser.FunctionContext>()
 
-    override fun visitSourceFile(ctx: HappyParser.SourceFileContext): String {
+    override fun visitSourceFile(ctx: HappyParser.SourceFileContext): Value {
         ctx.function().forEach(this::visitFunction)
         ctx.statement().forEach(this::visitStatement)
         ctx.expressionStatement().map { it.expression() }.forEach(this::visitExpression)
-        return "doesn't matter"
+        return none
     }
 
-    override fun visitFunction(ctx: HappyParser.FunctionContext): String {
+    override fun visitFunction(ctx: HappyParser.FunctionContext): Value {
         functions[ctx.ID(0).text] = ctx
-        return "doesn't matter"
+        return none
     }
 
-    override fun visitStatement(ctx: HappyParser.StatementContext): String {
+    override fun visitStatement(ctx: HappyParser.StatementContext): Value {
         scope.set(ctx.ID().text, visitExpression(ctx.expression()))
-        return "doesn't matter"
+        return none
     }
 
-    override fun visitExpression(ctx: HappyParser.ExpressionContext): String {
-        return if (ctx.NUMBER() != null) ctx.NUMBER().text
+    override fun visitExpression(ctx: HappyParser.ExpressionContext): Value {
+        return if (ctx.NUMBER() != null) Value("Integer", ctx.NUMBER().text.toInt())
         else if (ctx.ID() != null) scope.get(ctx.ID().text)
-        else if (ctx.STRING_LITERAL() != null) ctx.STRING_LITERAL().text.drop(1).dropLast(1)
+        else if (ctx.STRING_LITERAL() != null) Value("String", ctx.STRING_LITERAL().text.drop(1).dropLast(1))
         else if (ctx.call() != null) visitCall(ctx.call())
-        else visitExpression(ctx.expression(0)) + visitExpression(ctx.expression(1))
+        else {
+            val left = visitExpression(ctx.expression(0))
+            val right = visitExpression(ctx.expression(1))
+            if (left.type == "Integer") Value("Integer", left.value as Int + right.value as Int)
+            else Value("String", left.value as String + right.value as String)
+        }
     }
 
-    override fun visitCall(ctx: HappyParser.CallContext): String {
+    override fun visitCall(ctx: HappyParser.CallContext): Value {
         scope.enter()
 
         val function = functions[ctx.ID().text]

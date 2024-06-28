@@ -8,7 +8,7 @@ class BuiltInFunction(
     val name: String,
     val arguments: List<Pair<String, String>>,
     val description: String,
-    val implementation: (Scope) -> String
+    val implementation: (Scope) -> Value
 ) {
 
     init {
@@ -20,5 +20,5 @@ val printLine = BuiltInFunction(
     name = "printLine",
     arguments = listOf("text" to "Text to print"),
     description = "Prints provided text and a newline at the end",
-    implementation = { println(it.get("text")); "doesn't matter" }
+    implementation = { println(it.get("text").value); none }
 )
