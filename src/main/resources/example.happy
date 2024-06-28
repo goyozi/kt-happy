@@ -8,3 +8,20 @@ function add(a, b) {
 printLine(add(add(a, 100), b + 10));
 
 printLine("Hello, World!");
+
+if a > 0 {
+  printLine("Math works!")
+} else {
+  printLine("Math");
+  printLine("is");
+  printLine("in");
+  printLine("trouble!")
+};
+
+let name = "Happy Lang";
+
+if name == "Happy Lang" {
+  printLine("I'm a Happy dev!")
+} else {
+  printLine("Save me!")
+};

@@ -13,13 +13,22 @@ expression
     | ID
     | STRING_LITERAL
     | expression PLUS expression
+    | expression GT expression
+    | expression EQ expression
     | call
+    | ifExpression
     ;
 
-call: ID '(' expression (',' expression)*')';
+expressionBlock: '{' (statement | expressionStatement)* expression '}';
+
+ifExpression: 'if' expression expressionBlock 'else' expressionBlock;
+
+call: ID '(' expression (',' expression)* ')';
 
 ID: [a-zA-Z]+;
 NUMBER: [0-9]+;
 STRING_LITERAL: '"' ~ ["\r\n]* '"';
 PLUS: '+';
+GT: '>';
+EQ: '==';
 WS: [ \t\r\n] -> skip;
