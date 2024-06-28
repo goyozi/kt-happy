@@ -1,4 +1,5 @@
 plugins {
+    id("com.github.johnrengelman.shadow") version "8.1.1"
     antlr
     kotlin("jvm") version "1.9.22"
 }
@@ -26,4 +27,9 @@ tasks.test {
 }
 kotlin {
     jvmToolchain(21)
+}
+tasks.jar {
+    manifest {
+        attributes("Main-Class" to "io.github.goyozi.kthappy.MainKt")
+    }
 }
