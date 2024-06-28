@@ -20,8 +20,14 @@ if a > 0 {
 
 let name = "Happy Lang";
 
-if name == "Happy Lang" {
+if name != "Unhappy Lang" {
   printLine("I'm a Happy dev!")
 } else {
   printLine("Save me!")
 };
+
+printLine("Do I rock?!");
+
+while readLine() != "no" {
+  printLine("Everything is better than a 'no'!")
+}

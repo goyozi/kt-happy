@@ -22,3 +22,10 @@ val printLine = BuiltInFunction(
     description = "Prints provided text and a newline at the end",
     implementation = { println(it.get("text").value); none }
 )
+
+val readLine = BuiltInFunction(
+    name = "readLine",
+    arguments = listOf(),
+    description = "Reads a line from standard input and returns the text without newline at the end",
+    implementation = { Value("String", readln()) }
+)

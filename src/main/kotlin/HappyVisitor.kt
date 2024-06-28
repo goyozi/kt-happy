@@ -9,8 +9,7 @@ class HappyVisitor: HappyBaseVisitor<Value>() {
 
     override fun visitSourceFile(ctx: HappyParser.SourceFileContext): Value {
         ctx.function().forEach(this::visitFunction)
-        ctx.statement().forEach(this::visitStatement)
-        ctx.expressionStatement().map { it.expression() }.forEach(this::visitExpression)
+        ctx.topLevelAction().forEach(this::visitTopLevelAction)
         return none
     }
 
@@ -20,7 +19,13 @@ class HappyVisitor: HappyBaseVisitor<Value>() {
     }
 
     override fun visitStatement(ctx: HappyParser.StatementContext): Value {
-        scope.set(ctx.ID().text, visitExpression(ctx.expression()))
+        if (ctx.ID() != null) {
+            scope.set(ctx.ID().text, visitExpression(ctx.expression()))
+        } else if (ctx.whileLoop() != null) {
+            while (visitExpression(ctx.whileLoop().expression()).value == true) visitExpressionBlock(ctx.whileLoop().expressionBlock())
+        } else {
+            throw Error("Unimplemented statement: ${ctx.text}")
+        }
         return none
     }
 
@@ -42,6 +47,10 @@ class HappyVisitor: HappyBaseVisitor<Value>() {
             val left = visitExpression(ctx.expression(0))
             val right = visitExpression(ctx.expression(1))
             Value("Boolean", left.value == right.value)
+        } else if (ctx.NOT_EQ() != null) {
+            val left = visitExpression(ctx.expression(0))
+            val right = visitExpression(ctx.expression(1))
+            Value("Boolean", left.value != right.value)
         } else if (ctx.ifExpression() != null) {
             visitIfExpression(ctx.ifExpression())
         } else {
@@ -83,6 +92,6 @@ class HappyVisitor: HappyBaseVisitor<Value>() {
             return result
         }
 
-        throw IllegalStateException("Undeclared function: ${ctx.ID().text}")
+        throw Error("Undeclared function: ${ctx.ID().text}")
     }
 }
