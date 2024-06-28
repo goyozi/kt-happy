@@ -1,32 +1,33 @@
-let a = 1;
-let b = a + 1;
+let a = 1
+let b = a + 1
 
 function add(a, b) {
+  printLine("adding " + a + " to " + b)
   a + b
 }
 
-printLine(add(add(a, 100), b + 10));
+printLine(add(add(a, 100), b + 10))
 
-printLine("Hello, World!");
+printLine("Hello, World!")
 
 if a > 0 {
   printLine("Math works!")
 } else {
-  printLine("Math");
-  printLine("is");
-  printLine("in");
+  printLine("Math")
+  printLine("is")
+  printLine("in")
   printLine("trouble!")
-};
+}
 
-let name = "Happy Lang";
+let name = "Happy Lang"
 
 if name != "Unhappy Lang" {
   printLine("I'm a Happy dev!")
 } else {
   printLine("Save me!")
-};
+}
 
-printLine("Do I rock?!");
+printLine("Do I rock?!")
 
 while readLine() != "no" {
   printLine("Everything is better than a 'no'!")

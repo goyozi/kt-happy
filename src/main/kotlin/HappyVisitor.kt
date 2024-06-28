@@ -9,7 +9,7 @@ class HappyVisitor: HappyBaseVisitor<Value>() {
 
     override fun visitSourceFile(ctx: HappyParser.SourceFileContext): Value {
         ctx.function().forEach(this::visitFunction)
-        ctx.topLevelAction().forEach(this::visitTopLevelAction)
+        ctx.action().forEach(this::visitAction)
         return none
     }
 
@@ -38,7 +38,7 @@ class HappyVisitor: HappyBaseVisitor<Value>() {
             val left = visitExpression(ctx.expression(0))
             val right = visitExpression(ctx.expression(1))
             if (left.type == "Integer") Value("Integer", left.value as Int + right.value as Int)
-            else Value("String", left.value as String + right.value as String)
+            else Value("String", left.value as String + right.value.toString())
         } else if (ctx.GT() != null) {
             val left = visitExpression(ctx.expression(0))
             val right = visitExpression(ctx.expression(1))
@@ -59,7 +59,7 @@ class HappyVisitor: HappyBaseVisitor<Value>() {
     }
 
     override fun visitExpressionBlock(ctx: HappyParser.ExpressionBlockContext): Value {
-        for (expressionStatement in ctx.expressionStatement()) visitExpression(expressionStatement.expression())
+        ctx.action().forEach(this::visitAction)
         return visitExpression(ctx.expression())
     }
 
@@ -77,6 +77,7 @@ class HappyVisitor: HappyBaseVisitor<Value>() {
             for (i in 1..<function.ID().size) {
                 scope.set(function.ID(i).text, visitExpression(ctx.expression(i - 1)))
             }
+            function.action().forEach(this::visitAction)
             val result = visitExpression(function.expression())
             scope.leave()
             return result

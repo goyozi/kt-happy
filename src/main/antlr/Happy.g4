@@ -1,16 +1,14 @@
 grammar Happy;
 
-sourceFile: (function | topLevelAction)* EOF;
+sourceFile: (function | action)* EOF;
 
-topLevelAction: statement | expressionStatement;
+action: statement | expression;
 
-function: 'function' ID '(' ID (',' ID)+ ')' '{' statement* expression '}';
+function: 'function' ID '(' ID (',' ID)+ ')' '{' action* expression '}';
 
-statement: 'let' ID '=' expression ';' | whileLoop;
+statement: 'let' ID '=' expression | whileLoop;
 
 whileLoop: 'while' expression expressionBlock;
-
-expressionStatement: expression ';';
 
 expression
     : NUMBER
@@ -24,7 +22,7 @@ expression
     | ifExpression
     ;
 
-expressionBlock: '{' (statement | expressionStatement)* expression '}';
+expressionBlock: '{' (action)* expression '}';
 
 ifExpression: 'if' expression expressionBlock 'else' expressionBlock;
 
