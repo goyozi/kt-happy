@@ -7,13 +7,16 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-
+    permissions:
+      contents: read
+      packages: write
     steps:
     - uses: actions/checkout@v4
     - uses: actions/setup-java@v4
       with:
-        distribution: 'corretto'
-        java-version: '21'
+        distribution: corretto
+        java-version: 21
+        cache: gradle
     - name: Build the JAR
       run: ./gradlew shadowJar
     - name: Build the Docker image
