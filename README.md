@@ -7,7 +7,7 @@ This is a proof-of-concept implementation of the Happy programming language, wri
 The easiest way to start using the language now is to use the provided Docker image:
 
 ```shell
-alias happy="docker run -v `pwd`/:/src -t ghcr.io/goyozi/happy"
+alias happy="docker run -it -v `pwd`/:/src -t ghcr.io/goyozi/happy"
 alias happy-upgrade="docker pull ghcr.io/goyozi/happy"
 ```
 
