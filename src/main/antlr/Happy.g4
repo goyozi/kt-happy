@@ -1,6 +1,8 @@
 grammar Happy;
 
-sourceFile: (function | action)* EOF;
+sourceFile: (COMMENT | function | action)* EOF;
+
+COMMENT: '//' ~[\r\n]*;
 
 action: statement | expression;
 

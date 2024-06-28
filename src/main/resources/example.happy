@@ -29,6 +29,6 @@ if name != "Unhappy Lang" {
 
 printLine("Do I rock?!")
 
-while readLine() != "no" {
-  printLine("Everything is better than a 'no'!")
-}
+//while readLine() != "no" {
+//  printLine("Everything is better than a 'no'!")
+//}
