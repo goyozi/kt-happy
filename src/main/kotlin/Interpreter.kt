@@ -43,6 +43,18 @@ class Interpreter: HappyBaseVisitor<Value>() {
             val left = visitExpression(ctx.expression(0))
             val right = visitExpression(ctx.expression(1))
             Value("Boolean", left.value as Int > right.value as Int)
+        } else if (ctx.LT() != null) {
+            val left = visitExpression(ctx.expression(0))
+            val right = visitExpression(ctx.expression(1))
+            Value("Boolean", (left.value as Int) < (right.value as Int))
+        } else if (ctx.GT_EQ() != null) {
+            val left = visitExpression(ctx.expression(0))
+            val right = visitExpression(ctx.expression(1))
+            Value("Boolean", (left.value as Int) >= (right.value as Int))
+        } else if (ctx.LT_EQ() != null) {
+            val left = visitExpression(ctx.expression(0))
+            val right = visitExpression(ctx.expression(1))
+            Value("Boolean", (left.value as Int) <= (right.value as Int))
         } else if (ctx.EQ() != null) {
             val left = visitExpression(ctx.expression(0))
             val right = visitExpression(ctx.expression(1))

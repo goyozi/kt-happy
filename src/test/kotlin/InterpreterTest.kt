@@ -38,6 +38,22 @@ class InterpreterTest {
         assertExpression("if 1 > 2 { \"it doesn't\" } else if 2 > 3 { \"it doesn't\" } else { \"it works\" }", Value("String", "it works"));
     }
 
+    @Test
+    fun comparisonExpression() {
+        assertExpression("1 == 1", Value("Boolean", true))
+        assertExpression("1 == 2", Value("Boolean", false))
+        assertExpression("1 != 2", Value("Boolean", true))
+        assertExpression("1 != 1", Value("Boolean", false))
+        assertExpression("2 > 1", Value("Boolean", true))
+        assertExpression("1 > 2", Value("Boolean", false))
+        assertExpression("1 < 2", Value("Boolean", true))
+        assertExpression("2 < 1", Value("Boolean", false))
+        assertExpression("1 >= 1", Value("Boolean", true))
+        assertExpression("1 >= 2", Value("Boolean", false))
+        assertExpression("1 <= 1", Value("Boolean", true))
+        assertExpression("2 <= 1", Value("Boolean", false))
+    }
+
     private fun assertExpression(code: String, expected: Value) {
         val parser = HappyParser(CommonTokenStream(HappyLexer(CharStreams.fromString(code))))
         val result = Interpreter().visitExpression(parser.expression())

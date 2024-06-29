@@ -22,6 +22,9 @@ expression
     | STRING_LITERAL
     | expression PLUS expression
     | expression GT expression
+    | expression LT expression
+    | expression GT_EQ expression
+    | expression LT_EQ expression
     | expression EQ expression
     | expression NOT_EQ expression
     | call
@@ -48,6 +51,9 @@ NUMBER: [0-9]+;
 STRING_LITERAL: '"' ~ ["\r\n]* '"';
 PLUS: '+';
 GT: '>';
+LT: '<';
+GT_EQ: '>=';
+LT_EQ: '<=';
 EQ: '==';
 NOT_EQ: '!=';
 WS: [ \t\r\n] -> skip;
