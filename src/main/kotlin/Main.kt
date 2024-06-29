@@ -9,6 +9,6 @@ import java.io.FileInputStream
 fun main(args: Array<String>) {
     val source = FileInputStream(args[0])
     val parser = HappyParser(CommonTokenStream(HappyLexer(CharStreams.fromStream(source))))
-    val visitor = HappyVisitor()
+    val visitor = Interpreter()
     visitor.visitSourceFile(parser.sourceFile())
 }

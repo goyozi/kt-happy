@@ -28,11 +28,12 @@ expression
     | ifExpression
     | constructor
     | dotAccess
+    | expressionBlock
     ;
 
 expressionBlock: '{' (action)* expression '}';
 
-ifExpression: 'if' expression expressionBlock 'else' expressionBlock;
+ifExpression: 'if' expression expressionBlock 'else' (expressionBlock | ifExpression);
 
 call: ID '(' expression? (',' expression)* ')';
 

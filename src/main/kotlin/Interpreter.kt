@@ -3,7 +3,7 @@ package io.github.goyozi.kthappy
 import HappyBaseVisitor
 import HappyParser
 
-class HappyVisitor: HappyBaseVisitor<Value>() {
+class Interpreter: HappyBaseVisitor<Value>() {
     val scope = Scope()
     val functions = mutableMapOf<String, HappyParser.FunctionContext>()
 
@@ -57,6 +57,8 @@ class HappyVisitor: HappyBaseVisitor<Value>() {
             visitConstructor(ctx.constructor())
         } else if (ctx.dotAccess() != null) {
             visitDotAccess(ctx.dotAccess())
+        } else if (ctx.expressionBlock() != null) {
+            visitExpressionBlock(ctx.expressionBlock())
         } else {
             throw Error("Unimplemented expression: " + ctx.text)
         }
@@ -70,6 +72,7 @@ class HappyVisitor: HappyBaseVisitor<Value>() {
     override fun visitIfExpression(ctx: HappyParser.IfExpressionContext): Value {
         val conditionMet = visitExpression(ctx.expression())
         return if (conditionMet.value as Boolean) visitExpressionBlock(ctx.expressionBlock(0))
+        else if (ctx.ifExpression() != null) visitIfExpression(ctx.ifExpression())
         else visitExpressionBlock(ctx.expressionBlock(1))
     }
 
