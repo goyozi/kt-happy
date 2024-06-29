@@ -39,6 +39,22 @@ class Interpreter: HappyBaseVisitor<Value>() {
             val right = visitExpression(ctx.expression(1))
             if (left.type == "Integer") Value("Integer", left.value as Int + right.value as Int)
             else Value("String", left.value as String + right.value.toString())
+        } else if (ctx.MINUS() != null) {
+            val left = visitExpression(ctx.expression(0))
+            val right = visitExpression(ctx.expression(1))
+            Value("Integer", left.value as Int - right.value as Int)
+        } else if (ctx.TIMES() != null) {
+            val left = visitExpression(ctx.expression(0))
+            val right = visitExpression(ctx.expression(1))
+            Value("Integer", left.value as Int * right.value as Int)
+        } else if (ctx.DIV() != null) {
+            val left = visitExpression(ctx.expression(0))
+            val right = visitExpression(ctx.expression(1))
+            Value("Integer", left.value as Int / right.value as Int)
+        } else if (ctx.MOD() != null) {
+            val left = visitExpression(ctx.expression(0))
+            val right = visitExpression(ctx.expression(1))
+            Value("Integer", left.value as Int % right.value as Int)
         } else if (ctx.GT() != null) {
             val left = visitExpression(ctx.expression(0))
             val right = visitExpression(ctx.expression(1))

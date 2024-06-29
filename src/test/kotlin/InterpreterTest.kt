@@ -18,6 +18,15 @@ class InterpreterTest {
     }
 
     @Test
+    fun arithmeticExpression() {
+        assertExpression("1 + 2", Value("Integer", 3))
+        assertExpression("3 - 2", Value("Integer", 1))
+        assertExpression("2 * 3", Value("Integer", 6))
+        assertExpression("6 / 3", Value("Integer", 2))
+        assertExpression("8 % 3", Value("Integer", 2))
+    }
+
+    @Test
     fun expressionBlock() {
         assertExpression(
             """
@@ -52,6 +61,12 @@ class InterpreterTest {
         assertExpression("1 >= 2", Value("Boolean", false))
         assertExpression("1 <= 1", Value("Boolean", true))
         assertExpression("2 <= 1", Value("Boolean", false))
+    }
+
+    @Test
+    fun operatorPrecedence() {
+        assertExpression("1 + 2 * 2 + 1", Value("Integer", 6))
+        assertExpression("3 + 2 > 3 + 1", Value("Boolean", true))
     }
 
     private fun assertExpression(code: String, expected: Value) {

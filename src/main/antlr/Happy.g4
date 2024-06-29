@@ -20,7 +20,11 @@ expression
     : NUMBER
     | ID
     | STRING_LITERAL
+    | expression TIMES expression
+    | expression DIV expression
+    | expression MOD expression
     | expression PLUS expression
+    | expression MINUS expression
     | expression GT expression
     | expression LT expression
     | expression GT_EQ expression
@@ -47,13 +51,21 @@ keyExpression: ID ':' expression;
 dotAccess: ID '.' ID;
 
 ID: [a-zA-Z]+;
+
 NUMBER: [0-9]+;
 STRING_LITERAL: '"' ~ ["\r\n]* '"';
+
 PLUS: '+';
+MINUS: '-';
+TIMES: '*';
+DIV: '/';
+MOD: '%';
+
 GT: '>';
 LT: '<';
 GT_EQ: '>=';
 LT_EQ: '<=';
 EQ: '==';
 NOT_EQ: '!=';
+
 WS: [ \t\r\n] -> skip;
