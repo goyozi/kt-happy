@@ -69,6 +69,38 @@ class InterpreterTest {
         assertExpression("3 + 2 > 3 + 1", Value("Boolean", true))
     }
 
+    @Test
+    fun forLoop() {
+        assertExpression(
+            """
+            {
+              let x = 0
+              for i in 1..3 { x = x + i }
+              x
+            }
+            """,
+            Value("Integer", 6)
+        )
+    }
+
+    @Test
+    fun whileLoop() {
+        assertExpression(
+            """
+            {
+              let x = 0
+              let i = 0
+              while i < 3 {
+                i = i + 1
+                x = x + i
+              }
+              x
+            }
+            """,
+            Value("Integer", 6)
+        )
+    }
+
     private fun assertExpression(code: String, expected: Value) {
         val parser = HappyParser(CommonTokenStream(HappyLexer(CharStreams.fromString(code))))
         val result = Interpreter().visitExpression(parser.expression())

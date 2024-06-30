@@ -22,9 +22,19 @@ class Interpreter: HappyBaseVisitor<Value>() {
         if (ctx.ID() != null) {
             scope.set(ctx.ID().text, visitExpression(ctx.expression()))
         } else if (ctx.whileLoop() != null) {
-            while (visitExpression(ctx.whileLoop().expression()).value == true) visitExpressionBlock(ctx.whileLoop().expressionBlock())
+            while (visitExpression(ctx.whileLoop().expression()).value == true) ctx.whileLoop().action().forEach(this::visitAction)
+        } else if (ctx.forLoop() != null) {
+            visitForLoop(ctx.forLoop())
         } else {
             throw Error("Unimplemented statement: ${ctx.text}")
+        }
+        return none
+    }
+
+    override fun visitForLoop(ctx: HappyParser.ForLoopContext): Value {
+        for (i in ctx.NUMBER(0).text.toInt()..ctx.NUMBER(1).text.toInt()) {
+            scope.set(ctx.ID().text, Value("Integer", i))
+            ctx.action().forEach(this::visitAction)
         }
         return none
     }
