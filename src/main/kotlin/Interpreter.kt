@@ -4,7 +4,7 @@ import HappyBaseVisitor
 import HappyParser
 
 class Interpreter: HappyBaseVisitor<Value>() {
-    val scope = Scope()
+    val scope = Scope<Value>()
     val functions = mutableMapOf<String, HappyParser.FunctionContext>()
 
     override fun visitSourceFile(ctx: HappyParser.SourceFileContext): Value {
@@ -19,8 +19,8 @@ class Interpreter: HappyBaseVisitor<Value>() {
     }
 
     override fun visitStatement(ctx: HappyParser.StatementContext): Value {
-        if (ctx.ID() != null) {
-            scope.set(ctx.ID().text, visitExpression(ctx.expression()))
+        if (ctx.ID().isNotEmpty()) {
+            scope.set(ctx.ID(0).text, visitExpression(ctx.expression()))
         } else if (ctx.whileLoop() != null) {
             while (visitExpression(ctx.whileLoop().expression()).value == true) ctx.whileLoop().action().forEach(this::visitAction)
         } else if (ctx.forLoop() != null) {
@@ -119,8 +119,8 @@ class Interpreter: HappyBaseVisitor<Value>() {
 
         val function = functions[ctx.ID().text]
         if (function != null) {
-            for (i in 1..<function.ID().size) {
-                scope.set(function.ID(i).text, visitExpression(ctx.expression(i - 1)))
+            for (i in 2..<function.ID().size) {
+                scope.set(function.ID(i).text, visitExpression(ctx.expression(i - 2)))
             }
             function.action().forEach(this::visitAction)
             val result = visitExpression(function.expression())

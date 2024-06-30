@@ -1,7 +1,7 @@
 let a = 1
 let b = a + 1
 
-function add(a, b) {
+function add(a, b): Integer {
   printLine("adding " + a + " to " + b)
   a + b
 }

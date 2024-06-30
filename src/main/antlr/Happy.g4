@@ -10,9 +10,9 @@ data: 'data' ID '{' (keyValue ',')* (keyValue)? '}';
 
 keyValue: ID ':' ID;
 
-function: 'function' ID '(' ID (',' ID)+ ')' '{' action* expression '}';
+function: 'function' ID '(' ID (',' ID)+ ')' ':' ID '{' action* expression '}';
 
-statement: 'let'? ID '=' expression | whileLoop | forLoop;
+statement: 'let'? ID (':' ID)? '=' expression | whileLoop | forLoop;
 
 whileLoop: 'while' expression '{' action* '}';
 

@@ -1,7 +1,7 @@
 package io.github.goyozi.kthappy
 
-class Scope {
-    val stack = mutableListOf(Layer())
+class Scope<T> {
+    val stack = mutableListOf(Layer<T>())
 
     fun enter() {
         stack.add(Layer())
@@ -11,7 +11,7 @@ class Scope {
         stack.removeLast()
     }
 
-    fun set(id: String, value: Value) {
+    fun set(id: String, value: T) {
         stack.last().bindings[id] = value
     }
 
@@ -19,6 +19,6 @@ class Scope {
         ?: throw IllegalStateException("Unknown identifier: $id")
 }
 
-class Layer {
-    val bindings = mutableMapOf<String, Value>()
+class Layer<T> {
+    val bindings = mutableMapOf<String, T>()
 }
