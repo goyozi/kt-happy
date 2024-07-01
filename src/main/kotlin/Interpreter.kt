@@ -122,7 +122,7 @@ class Interpreter: HappyBaseVisitor<Value>() {
         val function = functions[ctx.ID().text]
         if (function != null) {
             for (i in 0..<function.arguments.size) {
-                scope.set(function.arguments[i].text, visitExpression(ctx.expression(i)))
+                scope.set(function.arguments[i].name.text, visitExpression(ctx.expression(i)))
             }
             function.action().forEach(this::visitAction)
             val result = visitExpression(function.expression())

@@ -1,5 +1,6 @@
 import io.github.goyozi.kthappy.TypeChecker
 import io.github.goyozi.kthappy.TypeError
+import io.github.goyozi.kthappy.Value
 import org.antlr.v4.runtime.CharStreams
 import org.antlr.v4.runtime.CommonTokenStream
 import org.junit.jupiter.api.Test
@@ -34,9 +35,39 @@ class TypeCheckerTest {
         assertEquals(listOf(TypeError("1", "Integer", "String")), typeChecker.typeErrors)
     }
 
+    @Test
+    fun functionCall() {
+        defineFunction(
+            """
+            function add(a: Integer, b: Integer): Integer {
+              a + b
+            }
+            """
+        )
+        assertEquals(listOf(), typeChecker.typeErrors)
+        assertType("add(5, 10)", "Integer")
+    }
+
+    @Test
+    fun functionReturnTypeCheck() {
+        defineFunction(
+            """
+            function add(a: Integer, b: Integer): Integer {
+              "not a number"
+            }
+            """
+        )
+        assertEquals(listOf(TypeError("2", "Integer", "String")), typeChecker.typeErrors)
+    }
+
     private fun assertType(code: String, expected: String) {
         val parser = HappyParser(CommonTokenStream(HappyLexer(CharStreams.fromString(code))))
         val result = typeChecker.visitExpression(parser.expression())
         assertEquals(expected, result)
+    }
+
+    private fun defineFunction(code: String) {
+        val parser = HappyParser(CommonTokenStream(HappyLexer(CharStreams.fromString(code))))
+        typeChecker.visitFunction(parser.function())
     }
 }

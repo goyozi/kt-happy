@@ -2,7 +2,6 @@ package io.github.goyozi.kthappy
 
 import HappyBaseVisitor
 import HappyParser
-import kotlin.math.exp
 
 class TypeChecker : HappyBaseVisitor<String>() {
     val scope = Scope<String>()
@@ -17,6 +16,18 @@ class TypeChecker : HappyBaseVisitor<String>() {
 
     override fun visitFunction(ctx: HappyParser.FunctionContext): String {
         functions[ctx.ID(0).text] = ctx
+        scope.enter()
+
+        for (i in 0..<ctx.arguments.size) {
+            scope.set(ctx.arguments[i].name.text, ctx.arguments[i].type.text)
+        }
+
+        val declaredReturnType = ctx.returnType.text
+        val actualReturnType = visitExpression(ctx.expression())
+        if (declaredReturnType != actualReturnType) {
+            typeErrors.add(TypeError("${ctx.start.line}", declaredReturnType, actualReturnType))
+        }
+
         return "None"
     }
 

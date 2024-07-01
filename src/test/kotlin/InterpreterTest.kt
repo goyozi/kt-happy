@@ -113,7 +113,7 @@ class InterpreterTest {
     fun functionCall() {
         defineFunction(
             """
-            function add(a, b): Integer {
+            function add(a: Integer, b: Integer): Integer {
               a + b
             }
             """

@@ -8,9 +8,9 @@ action: statement | expression;
 
 data: 'data' ID '{' (keyValue ',')* (keyValue)? '}';
 
-keyValue: ID ':' ID;
+keyValue: name=ID ':' type=ID;
 
-function: 'function' name=ID '(' arguments+=ID (',' arguments+=ID)+ ')' ':' returnType=ID '{' action* expression '}';
+function: 'function' name=ID '(' arguments+=keyValue (',' arguments+=keyValue)+ ')' ':' returnType=ID '{' action* expression '}';
 
 statement: variableDeclaration | variableAssignment | whileLoop | forLoop;
 
