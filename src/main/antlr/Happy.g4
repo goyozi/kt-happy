@@ -10,7 +10,7 @@ data: 'data' ID '{' (keyValue ',')* (keyValue)? '}';
 
 keyValue: ID ':' ID;
 
-function: 'function' ID '(' ID (',' ID)+ ')' ':' ID '{' action* expression '}';
+function: 'function' name=ID '(' arguments+=ID (',' arguments+=ID)+ ')' ':' returnType=ID '{' action* expression '}';
 
 statement: variableDeclaration | variableAssignment | whileLoop | forLoop;
 

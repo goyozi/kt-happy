@@ -2,10 +2,18 @@ import io.github.goyozi.kthappy.Interpreter
 import io.github.goyozi.kthappy.Value
 import org.antlr.v4.runtime.CharStreams
 import org.antlr.v4.runtime.CommonTokenStream
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 
 class InterpreterTest {
+
+    lateinit var interpreter: Interpreter
+
+    @BeforeEach
+    fun setUp() {
+        interpreter = Interpreter()
+    }
 
     @Test
     fun intLiteral() {
@@ -101,9 +109,26 @@ class InterpreterTest {
         )
     }
 
+    @Test
+    fun functionCall() {
+        defineFunction(
+            """
+            function add(a, b): Integer {
+              a + b
+            }
+            """
+        )
+        assertExpression("add(5, 10)", Value("Integer", 15))
+    }
+
     private fun assertExpression(code: String, expected: Value) {
         val parser = HappyParser(CommonTokenStream(HappyLexer(CharStreams.fromString(code))))
-        val result = Interpreter().visitExpression(parser.expression())
+        val result = interpreter.visitExpression(parser.expression())
         assertEquals(expected, result)
+    }
+
+    private fun defineFunction(code: String) {
+        val parser = HappyParser(CommonTokenStream(HappyLexer(CharStreams.fromString(code))))
+        interpreter.visitFunction(parser.function())
     }
 }

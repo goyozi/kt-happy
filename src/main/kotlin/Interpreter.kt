@@ -14,7 +14,7 @@ class Interpreter: HappyBaseVisitor<Value>() {
     }
 
     override fun visitFunction(ctx: HappyParser.FunctionContext): Value {
-        functions[ctx.ID(0).text] = ctx
+        functions[ctx.name.text] = ctx
         return none
     }
 
@@ -121,8 +121,8 @@ class Interpreter: HappyBaseVisitor<Value>() {
 
         val function = functions[ctx.ID().text]
         if (function != null) {
-            for (i in 2..<function.ID().size) {
-                scope.set(function.ID(i).text, visitExpression(ctx.expression(i - 2)))
+            for (i in 0..<function.arguments.size) {
+                scope.set(function.arguments[i].text, visitExpression(ctx.expression(i)))
             }
             function.action().forEach(this::visitAction)
             val result = visitExpression(function.expression())
