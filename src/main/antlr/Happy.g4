@@ -12,7 +12,11 @@ keyValue: ID ':' ID;
 
 function: 'function' ID '(' ID (',' ID)+ ')' ':' ID '{' action* expression '}';
 
-statement: 'let'? ID (':' ID)? '=' expression | whileLoop | forLoop;
+statement: variableDeclaration | variableAssignment | whileLoop | forLoop;
+
+variableDeclaration: 'let' ID (':' ID)? '=' expression;
+
+variableAssignment: ID '=' expression;
 
 whileLoop: 'while' expression '{' action* '}';
 

@@ -2,6 +2,7 @@ package io.github.goyozi.kthappy
 
 import HappyBaseVisitor
 import HappyParser
+import kotlin.math.exp
 
 class TypeChecker : HappyBaseVisitor<String>() {
     val scope = Scope<String>()
@@ -20,11 +21,20 @@ class TypeChecker : HappyBaseVisitor<String>() {
     }
 
     override fun visitStatement(ctx: HappyParser.StatementContext): String {
-        if (ctx.ID() != null) {
-            val expressionType = visitExpression(ctx.expression())
-            scope.set(ctx.ID(0).text, ctx.ID().getOrNull(1)?.text ?: expressionType)
-            if (ctx.ID().size == 2 && ctx.ID(1).text != expressionType) {
-                typeErrors.add(TypeError("${ctx.start.line}", ctx.ID(1).text, expressionType))
+        if (ctx.variableDeclaration() != null) {
+            val expressionType = visitExpression(ctx.variableDeclaration().expression())
+            scope.set(
+                ctx.variableDeclaration().ID(0).text,
+                ctx.variableDeclaration().ID().getOrNull(1)?.text ?: expressionType
+            )
+            if (ctx.variableDeclaration().ID().size == 2 && ctx.variableDeclaration().ID(1).text != expressionType) {
+                typeErrors.add(TypeError("${ctx.start.line}", ctx.variableDeclaration().ID(1).text, expressionType))
+            }
+        } else if (ctx.variableAssignment() != null) {
+            val declaredType = scope.get(ctx.variableAssignment().ID().text)
+            val expressionType = visitExpression(ctx.variableAssignment().expression())
+            if (declaredType != expressionType) {
+                typeErrors.add(TypeError("${ctx.start.line}", declaredType, expressionType))
             }
         } else if (ctx.whileLoop() != null) {
             ctx.whileLoop().action().forEach(this::visitAction)

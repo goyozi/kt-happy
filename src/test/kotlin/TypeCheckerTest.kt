@@ -26,6 +26,14 @@ class TypeCheckerTest {
         assertEquals(listOf(TypeError("1", "String", "Integer")), typeChecker.typeErrors)
     }
 
+    @Test
+    fun assignmentStatement() {
+        assertType("{ let x = 5 x = 10 x }", "Integer")
+        assertEquals(listOf(), typeChecker.typeErrors)
+        assertType("{ let x = 5 x = \"text\" x }", "Integer")
+        assertEquals(listOf(TypeError("1", "Integer", "String")), typeChecker.typeErrors)
+    }
+
     private fun assertType(code: String, expected: String) {
         val parser = HappyParser(CommonTokenStream(HappyLexer(CharStreams.fromString(code))))
         val result = typeChecker.visitExpression(parser.expression())

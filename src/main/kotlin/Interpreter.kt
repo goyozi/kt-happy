@@ -19,8 +19,10 @@ class Interpreter: HappyBaseVisitor<Value>() {
     }
 
     override fun visitStatement(ctx: HappyParser.StatementContext): Value {
-        if (ctx.ID().isNotEmpty()) {
-            scope.set(ctx.ID(0).text, visitExpression(ctx.expression()))
+        if (ctx.variableDeclaration() != null) {
+            scope.set(ctx.variableDeclaration().ID(0).text, visitExpression(ctx.variableDeclaration().expression()))
+        } else if (ctx.variableAssignment() != null) {
+            scope.set(ctx.variableAssignment().ID().text, visitExpression(ctx.variableAssignment().expression()))
         } else if (ctx.whileLoop() != null) {
             while (visitExpression(ctx.whileLoop().expression()).value == true) ctx.whileLoop().action().forEach(this::visitAction)
         } else if (ctx.forLoop() != null) {
