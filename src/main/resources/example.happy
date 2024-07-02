@@ -6,6 +6,8 @@ function add(a: Integer, b: Integer): Integer {
   a + b
 }
 
+add("not a number", "not a number either")
+
 printLine(add(add(a, 100), b + 10))
 
 printLine("Hello, World!")
@@ -45,3 +47,5 @@ printLine(tom.age == 4)
 for i in 1..3 {
   printLine("iteration " + i)
 }
+
+let name: String = 123

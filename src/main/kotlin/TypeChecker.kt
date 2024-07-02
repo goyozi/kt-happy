@@ -153,17 +153,16 @@ class TypeChecker : HappyBaseVisitor<String>() {
     }
 
     override fun visitCall(ctx: HappyParser.CallContext): String {
-//        scope.enter()
-
         val function = functions[ctx.ID().text]
         if (function != null) {
-//            for (i in 1..<function.ID().size) {
-//                scope.set(function.ID(i).text, visitExpression(ctx.expression(i - 1)))
-//            }
-//            function.action().forEach(this::visitAction)
-//            val result = visitExpression(function.expression())
-//            scope.leave()
-            return function.ID().last().text
+            for (i in 0..<function.arguments.size) {
+                val declaredArgumentType = function.arguments[i].type.text
+                val actualArgumentType = visitExpression(ctx.expression(i))
+                if (declaredArgumentType != actualArgumentType) {
+                    typeErrors.add(TypeError("${ctx.start.line}", declaredArgumentType, actualArgumentType))
+                }
+            }
+            return function.returnType.text
         }
 
         val builtInFunction = builtIns[ctx.ID().text]

@@ -49,6 +49,19 @@ class TypeCheckerTest {
     }
 
     @Test
+    fun functionArgumentTypeCheck() {
+        defineFunction(
+            """
+            function add(a: Integer, b: Integer): Integer {
+              a + b
+            }
+            """
+        )
+        assertType("add(5, \"not a number\")", "Integer")
+        assertEquals(listOf(TypeError("1", "Integer", "String")), typeChecker.typeErrors)
+    }
+
+    @Test
     fun functionReturnTypeCheck() {
         defineFunction(
             """
