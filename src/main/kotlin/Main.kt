@@ -9,13 +9,13 @@ import java.io.FileInputStream
 fun main(args: Array<String>) {
     val source = FileInputStream(args[0])
     val parser = HappyParser(CommonTokenStream(HappyLexer(CharStreams.fromStream(source))))
+    val sourceFileTree = parser.sourceFile()
 
     val typeChecker = TypeChecker()
-    typeChecker.visitSourceFile(parser.sourceFile())
+    typeChecker.visitSourceFile(sourceFileTree)
     for (typeError in typeChecker.typeErrors) {
         System.err.println(typeError)
     }
-    parser.reset()
 
-    Interpreter().visitSourceFile(parser.sourceFile())
+    Interpreter().visitSourceFile(sourceFileTree)
 }
