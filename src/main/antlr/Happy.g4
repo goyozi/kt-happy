@@ -22,11 +22,15 @@ variableAssignment: ID '=' expression;
 
 whileLoop: 'while' expression '{' action* '}';
 
-forLoop: 'for' ID 'in' NUMBER '..' NUMBER '{' action* '}';
+forLoop: 'for' ID 'in' INTEGER_LITERAL '..' INTEGER_LITERAL '{' action* '}';
 
 expression
-    : NUMBER #numLiteral
+    : 'true' #trueLiteral
+    | 'false' #falseLiteral
+    | INTEGER_LITERAL #integerLiteral
     | STRING_LITERAL #stringLiteral
+    | '!' expression #negation
+    | '-' expression #unaryMinus
     | expression '*' expression #multiplication
     | expression '/' expression #division
     | expression '%' expression #modulus
@@ -55,6 +59,6 @@ expressionBlock: '{' (action)* expression '}';
 
 COMMENT: '//' ~[\r\n]*;
 ID: [a-zA-Z]+;
-NUMBER: [0-9]+;
+INTEGER_LITERAL: [0-9]+;
 STRING_LITERAL: '"' ~ ["\r\n]* '"';
 WS: [ \t\r\n] -> skip;

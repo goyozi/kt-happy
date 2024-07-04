@@ -33,20 +33,36 @@ class Interpreter: HappyBaseVisitor<Value>() {
         return none
     }
 
-    override fun visitNumLiteral(ctx: HappyParser.NumLiteralContext): Value {
-        return Value("Integer", ctx.NUMBER().text.toInt())
-    }
-
     override fun visitForLoop(ctx: HappyParser.ForLoopContext): Value {
-        for (i in ctx.NUMBER(0).text.toInt()..ctx.NUMBER(1).text.toInt()) {
+        for (i in ctx.INTEGER_LITERAL(0).text.toInt()..ctx.INTEGER_LITERAL(1).text.toInt()) {
             scope.set(ctx.ID().text, Value("Integer", i))
             ctx.action().forEach(this::visitAction)
         }
         return none
     }
 
+    override fun visitTrueLiteral(ctx: HappyParser.TrueLiteralContext): Value {
+        return Value("Boolean", true)
+    }
+
+    override fun visitFalseLiteral(ctx: HappyParser.FalseLiteralContext): Value {
+        return Value("Boolean", false)
+    }
+
+    override fun visitIntegerLiteral(ctx: HappyParser.IntegerLiteralContext): Value {
+        return Value("Integer", ctx.INTEGER_LITERAL().text.toInt())
+    }
+
     override fun visitStringLiteral(ctx: HappyParser.StringLiteralContext): Value {
         return Value("String", ctx.STRING_LITERAL().text.drop(1).dropLast(1))
+    }
+
+    override fun visitNegation(ctx: HappyParser.NegationContext): Value {
+        return Value("Boolean", !(visitExpression(ctx.expression()).value as Boolean))
+    }
+
+    override fun visitUnaryMinus(ctx: HappyParser.UnaryMinusContext): Value {
+        return Value("Integer", -(visitExpression(ctx.expression()).value as Int))
     }
 
     override fun visitMultiplication(ctx: HappyParser.MultiplicationContext): Value {

@@ -16,6 +16,12 @@ class InterpreterTest {
     }
 
     @Test
+    fun booleanLiteral() {
+        assertExpression("true", Value("Boolean", true))
+        assertExpression("false", Value("Boolean", false))
+    }
+
+    @Test
     fun intLiteral() {
         assertExpression("123", Value("Integer", 123))
     }
@@ -26,7 +32,15 @@ class InterpreterTest {
     }
 
     @Test
+    fun negation() {
+        assertExpression("!false", Value("Boolean", true))
+        assertExpression("!true", Value("Boolean", false))
+    }
+
+    @Test
     fun arithmeticExpression() {
+        assertExpression("-5", Value("Integer", -5))
+        assertExpression("-5 + 10", Value("Integer", 5))
         assertExpression("1 + 2", Value("Integer", 3))
         assertExpression("3 - 2", Value("Integer", 1))
         assertExpression("2 * 3", Value("Integer", 6))

@@ -6,7 +6,7 @@ function add(a: Integer, b: Integer): Integer {
   a + b
 }
 
-add("not a number", "not a number either")
+//add("not a number", "not a number either")
 
 printLine(add(add(a, 100), b + 10))
 
@@ -48,4 +48,4 @@ for i in 1..3 {
   printLine("iteration " + i)
 }
 
-let name: String = 123
+//let name: String = 123

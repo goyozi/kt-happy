@@ -63,7 +63,7 @@ class TypeChecker : HappyBaseVisitor<String>() {
         return "None"
     }
 
-    override fun visitNumLiteral(ctx: HappyParser.NumLiteralContext): String {
+    override fun visitIntegerLiteral(ctx: HappyParser.IntegerLiteralContext): String {
         return "Integer"
     }
 
