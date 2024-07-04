@@ -35,6 +35,8 @@ class InterpreterTest {
     fun negation() {
         assertExpression("!false", Value("Boolean", true))
         assertExpression("!true", Value("Boolean", false))
+        assertExpression("!(1 > 2)", Value("Boolean", true))
+        assertExpression("!(2 > 1)", Value("Boolean", false))
     }
 
     @Test
@@ -88,6 +90,9 @@ class InterpreterTest {
     @Test
     fun operatorPrecedence() {
         assertExpression("1 + 2 * 2 + 1", Value("Integer", 6))
+        assertExpression("(1 + 2) * 2 + 1", Value("Integer", 7))
+        assertExpression("2 + 2 * (2 + 1)", Value("Integer", 8))
+        assertExpression("(1 + 2) * (2 + 1)", Value("Integer", 9))
         assertExpression("3 + 2 > 3 + 1", Value("Boolean", true))
     }
 

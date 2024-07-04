@@ -25,7 +25,8 @@ whileLoop: 'while' expression '{' action* '}';
 forLoop: 'for' ID 'in' INTEGER_LITERAL '..' INTEGER_LITERAL '{' action* '}';
 
 expression
-    : 'true' #trueLiteral
+    : '(' expression ')' #expressionInBrackets
+    | 'true' #trueLiteral
     | 'false' #falseLiteral
     | INTEGER_LITERAL #integerLiteral
     | STRING_LITERAL #stringLiteral

@@ -41,6 +41,10 @@ class Interpreter: HappyBaseVisitor<Value>() {
         return none
     }
 
+    override fun visitExpressionInBrackets(ctx: HappyParser.ExpressionInBracketsContext): Value {
+        return visitExpression(ctx.expression())
+    }
+
     override fun visitTrueLiteral(ctx: HappyParser.TrueLiteralContext): Value {
         return Value("Boolean", true)
     }
