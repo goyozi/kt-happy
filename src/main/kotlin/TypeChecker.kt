@@ -63,96 +63,85 @@ class TypeChecker : HappyBaseVisitor<String>() {
         return "None"
     }
 
-    override fun visitExpression(ctx: HappyParser.ExpressionContext): String {
-        return if (ctx.NUMBER() != null) "Integer"
-        else if (ctx.ID() != null) scope.get(ctx.ID().text)
-        else if (ctx.STRING_LITERAL() != null) "String"
-        else if (ctx.call() != null) visitCall(ctx.call())
-        else if (ctx.PLUS() != null) {
-            val left = visitExpression(ctx.expression(0))
-            val right = visitExpression(ctx.expression(1))
-            // check if left and right are the same
-            left
-        } else if (ctx.MINUS() != null) {
-            val left = visitExpression(ctx.expression(0))
-            val right = visitExpression(ctx.expression(1))
-            // check if left and right are the same
-            left
-        } else if (ctx.TIMES() != null) {
-            val left = visitExpression(ctx.expression(0))
-            val right = visitExpression(ctx.expression(1))
-            // check if left and right are the same
-            left
-        } else if (ctx.DIV() != null) {
-            val left = visitExpression(ctx.expression(0))
-            val right = visitExpression(ctx.expression(1))
-            // check if left and right are the same
-            left
-        } else if (ctx.MOD() != null) {
-            val left = visitExpression(ctx.expression(0))
-            val right = visitExpression(ctx.expression(1))
-            // check if left and right are the same
-            left
-        } else if (ctx.GT() != null) {
-            val left = visitExpression(ctx.expression(0))
-            val right = visitExpression(ctx.expression(1))
-            // check if left and right are numbers
-            "Boolean"
-        } else if (ctx.LT() != null) {
-            val left = visitExpression(ctx.expression(0))
-            val right = visitExpression(ctx.expression(1))
-            // check if left and right are numbers
-            "Boolean"
-        } else if (ctx.GT_EQ() != null) {
-            val left = visitExpression(ctx.expression(0))
-            val right = visitExpression(ctx.expression(1))
-            // check if left and right are numbers
-            "Boolean"
-        } else if (ctx.LT_EQ() != null) {
-            val left = visitExpression(ctx.expression(0))
-            val right = visitExpression(ctx.expression(1))
-            // check if left and right are numbers
-            "Boolean"
-        } else if (ctx.EQ() != null) {
-            val left = visitExpression(ctx.expression(0))
-            val right = visitExpression(ctx.expression(1))
-            // check if left and right are the same
-            "Boolean"
-        } else if (ctx.NOT_EQ() != null) {
-            val left = visitExpression(ctx.expression(0))
-            val right = visitExpression(ctx.expression(1))
-            // check if left and right are the same
-            "Boolean"
-        } else if (ctx.ifExpression() != null) {
-            visitIfExpression(ctx.ifExpression())
-        } else if (ctx.constructor() != null) {
-            visitConstructor(ctx.constructor())
-            // check if type exists and if field types match
-        } else if (ctx.dotAccess() != null) {
-            visitDotAccess(ctx.dotAccess())
-        } else if (ctx.expressionBlock() != null) {
-            visitExpressionBlock(ctx.expressionBlock())
-        } else {
-            throw Error("Unimplemented expression: " + ctx.text)
-        }
+    override fun visitNumLiteral(ctx: HappyParser.NumLiteralContext): String {
+        return "Integer"
     }
 
-    override fun visitExpressionBlock(ctx: HappyParser.ExpressionBlockContext): String {
-        ctx.action().forEach(this::visitAction)
-        return visitExpression(ctx.expression())
+    override fun visitStringLiteral(ctx: HappyParser.StringLiteralContext): String {
+        return "String"
     }
 
-    override fun visitIfExpression(ctx: HappyParser.IfExpressionContext): String {
-        val conditionMet = visitExpression(ctx.expression())
-        // condition met must be boolean
-        val ifType = visitExpressionBlock(ctx.expressionBlock(0))
-        val elseType = if (ctx.ifExpression() != null) visitIfExpression(ctx.ifExpression())
-        else visitExpressionBlock(ctx.expressionBlock(1))
-        // if type must match else type
-        return ifType
+    override fun visitMultiplication(ctx: HappyParser.MultiplicationContext): String {
+        val left = visitExpression(ctx.expression(0))
+        val right = visitExpression(ctx.expression(1))
+        return "Integer"
     }
 
-    override fun visitCall(ctx: HappyParser.CallContext): String {
+    override fun visitDivision(ctx: HappyParser.DivisionContext): String {
+        val left = visitExpression(ctx.expression(0))
+        val right = visitExpression(ctx.expression(1))
+        return "Integer"
+    }
+
+    override fun visitModulus(ctx: HappyParser.ModulusContext): String {
+        val left = visitExpression(ctx.expression(0))
+        val right = visitExpression(ctx.expression(1))
+        return "Integer"
+    }
+
+    override fun visitAddition(ctx: HappyParser.AdditionContext): String {
+        val left = visitExpression(ctx.expression(0))
+        val right = visitExpression(ctx.expression(1))
+        return left
+    }
+
+    override fun visitSubtraction(ctx: HappyParser.SubtractionContext): String {
+        val left = visitExpression(ctx.expression(0))
+        val right = visitExpression(ctx.expression(1))
+        return "Integer"
+    }
+
+    override fun visitGreaterThan(ctx: HappyParser.GreaterThanContext): String {
+        val left = visitExpression(ctx.expression(0))
+        val right = visitExpression(ctx.expression(1))
+        return "Boolean"
+    }
+
+    override fun visitLessThan(ctx: HappyParser.LessThanContext): String {
+        val left = visitExpression(ctx.expression(0))
+        val right = visitExpression(ctx.expression(1))
+        return "Boolean"
+    }
+
+    override fun visitGreaterOrEqual(ctx: HappyParser.GreaterOrEqualContext): String {
+        val left = visitExpression(ctx.expression(0))
+        val right = visitExpression(ctx.expression(1))
+        return "Boolean"
+    }
+
+    override fun visitLessOrEqual(ctx: HappyParser.LessOrEqualContext): String {
+        val left = visitExpression(ctx.expression(0))
+        val right = visitExpression(ctx.expression(1))
+        return "Boolean"
+    }
+
+    override fun visitEqualTo(ctx: HappyParser.EqualToContext): String {
+        val left = visitExpression(ctx.expression(0))
+        val right = visitExpression(ctx.expression(1))
+        return "Boolean"
+    }
+
+    override fun visitNotEqual(ctx: HappyParser.NotEqualContext): String {
+        val left = visitExpression(ctx.expression(0))
+        val right = visitExpression(ctx.expression(1))
+        return "Boolean"
+    }
+
+    override fun visitIdentifier(ctx: HappyParser.IdentifierContext): String {
+        return scope.get(ctx.ID().text)
+    }
+
+    override fun visitFunctionCall(ctx: HappyParser.FunctionCallContext): String {
         val function = functions[ctx.ID().text]
         if (function != null) {
             for (i in 0..<function.arguments.size) {
@@ -182,10 +171,29 @@ class TypeChecker : HappyBaseVisitor<String>() {
         return ctx.ID().text
     }
 
-    override fun visitDotAccess(ctx: HappyParser.DotAccessContext): String {
+    override fun visitDotCall(ctx: HappyParser.DotCallContext): String {
         // need to keep track of data types
 //        return (scope.get(ctx.ID(0).text).value as Map<String, Value>)[ctx.ID(1).text]
 //            ?: throw Error("${ctx.ID(0).text} does not have a member named ${ctx.ID(1).text}")
         return "TODO"
+    }
+
+    override fun visitIfExpression(ctx: HappyParser.IfExpressionContext): String {
+        val conditionMet = visitExpression(ctx.expression())
+        // condition met must be boolean
+        val ifType = visitExpressionBlock(ctx.expressionBlock(0))
+        val elseType = if (ctx.ifExpression() != null) visitIfExpression(ctx.ifExpression())
+        else visitExpressionBlock(ctx.expressionBlock(1))
+        // if type must match else type
+        return ifType
+    }
+
+    override fun visitExpressionBlock(ctx: HappyParser.ExpressionBlockContext): String {
+        ctx.action().forEach(this::visitAction)
+        return visitExpression(ctx.expression())
+    }
+
+    fun visitExpression(ctx: HappyParser.ExpressionContext): String {
+        return ctx.accept(this)
     }
 }
