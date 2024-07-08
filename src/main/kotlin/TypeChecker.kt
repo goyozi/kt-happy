@@ -169,7 +169,7 @@ class TypeChecker : HappyBaseVisitor<String>() {
         for (i in arguments.indices) {
             val declaredArgumentType = arguments[i]
             val actualArgumentType = visitExpression(ctx.expression(i))
-            if (declaredArgumentType != actualArgumentType) {
+            if (declaredArgumentType != actualArgumentType && declaredArgumentType != "Any") {
                 typeErrors.add(TypeError("${ctx.start.line}", declaredArgumentType, actualArgumentType))
             }
         }
