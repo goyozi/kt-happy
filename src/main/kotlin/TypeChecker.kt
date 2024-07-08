@@ -149,29 +149,30 @@ class TypeChecker : HappyBaseVisitor<String>() {
     }
 
     override fun visitFunctionCall(ctx: HappyParser.FunctionCallContext): String {
-        val function = functions[ctx.ID().text]
-        if (function != null) {
-            for (i in 0..<function.arguments.size) {
-                val declaredArgumentType = function.arguments[i].type.text
-                val actualArgumentType = visitExpression(ctx.expression(i))
-                if (declaredArgumentType != actualArgumentType) {
-                    typeErrors.add(TypeError("${ctx.start.line}", declaredArgumentType, actualArgumentType))
-                }
-            }
-            return function.returnType.text
-        }
-
-        val builtInFunction = builtIns[ctx.ID().text]
-        if (builtInFunction != null) {
-//            for (i in 0..<builtInFunction.arguments.size) {
-//                scope.set(builtInFunction.arguments[i].first, visitExpression(ctx.expression(i)))
+//        val function = functions[ctx.ID().text]
+//        if (function != null) {
+//            for (i in 0..<function.arguments.size) {
+//                val declaredArgumentType = function.arguments[i].type.text
+//                val actualArgumentType = visitExpression(ctx.expression(i))
+//                if (declaredArgumentType != actualArgumentType) {
+//                    typeErrors.add(TypeError("${ctx.start.line}", declaredArgumentType, actualArgumentType))
+//                }
 //            }
-//            val result = builtInFunction.implementation(scope)
-//            scope.leave()
-            return builtInFunction.returnType
-        }
-
-        throw Error("Undeclared function: ${ctx.ID().text}")
+//            return function.returnType.text
+//        }
+//
+//        val builtInFunction = builtIns[ctx.ID().text]
+//        if (builtInFunction != null) {
+////            for (i in 0..<builtInFunction.arguments.size) {
+////                scope.set(builtInFunction.arguments[i].first, visitExpression(ctx.expression(i)))
+////            }
+////            val result = builtInFunction.implementation(scope)
+////            scope.leave()
+//            return builtInFunction.returnType
+//        }
+//
+//        throw Error("Undeclared function: ${ctx.ID().text}")
+        return "TODO"
     }
 
     override fun visitConstructor(ctx: HappyParser.ConstructorContext): String {

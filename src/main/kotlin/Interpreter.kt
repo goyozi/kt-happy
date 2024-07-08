@@ -21,7 +21,7 @@ class Interpreter: HappyBaseVisitor<Value>() {
     }
 
     override fun visitFunction(ctx: HappyParser.FunctionContext): Value {
-        functions[ctx.name.text] = ctx
+        scope.set(ctx.name.text, Value("DeclaredFunction", ctx))
         return none
     }
 
@@ -48,9 +48,13 @@ class Interpreter: HappyBaseVisitor<Value>() {
         return none
     }
 
-//    override fun visitExpressionInBrackets(ctx: HappyParser.ExpressionInBracketsContext): Value {
-//        return visitExpression(ctx.expression())
-//    }
+    override fun visitComplexExpression(ctx: HappyParser.ComplexExpressionContext): Value {
+        return ctx.postfixExpression().accept(this)
+    }
+
+    override fun visitExpressionInBrackets(ctx: HappyParser.ExpressionInBracketsContext): Value {
+        return visitExpression(ctx.expression())
+    }
 
     override fun visitTrueLiteral(ctx: HappyParser.TrueLiteralContext): Value {
         return Value("Boolean", true)
@@ -144,14 +148,14 @@ class Interpreter: HappyBaseVisitor<Value>() {
     }
 
     override fun visitIdentifier(ctx: HappyParser.IdentifierContext): Value {
-        return scope.get(ctx.ID().text)
+        return builtIns[ctx.ID().text]?.let { Value("BuiltInFunction", it) } ?: scope.get(ctx.ID().text)
     }
 
     override fun visitFunctionCall(ctx: HappyParser.FunctionCallContext): Value {
         scope.enter()
 
-        val function = functions[ctx.ID().text]
-        if (function != null) {
+        val function = (ctx.parent as HappyParser.ComplexExpressionContext).expression().accept(this).value
+        if (function is HappyParser.FunctionContext) {
             for (i in 0..<function.arguments.size) {
                 scope.set(function.arguments[i].name.text, visitExpression(ctx.expression(i)))
             }
@@ -161,17 +165,13 @@ class Interpreter: HappyBaseVisitor<Value>() {
             return result
         }
 
-        val builtInFunction = builtIns[ctx.ID().text]
-        if (builtInFunction != null) {
-            for (i in 0..<builtInFunction.arguments.size) {
-                scope.set(builtInFunction.arguments[i].first, visitExpression(ctx.expression(i)))
-            }
-            val result = builtInFunction.implementation(scope)
-            scope.leave()
-            return result
+        val builtInFunction = function as BuiltInFunction
+        for (i in 0..<builtInFunction.arguments.size) {
+            scope.set(builtInFunction.arguments[i].first, visitExpression(ctx.expression(i)))
         }
-
-        throw Error("Undeclared function: ${ctx.ID().text}")
+        val result = builtInFunction.implementation(scope)
+        scope.leave()
+        return result
     }
 
     override fun visitConstructor(ctx: HappyParser.ConstructorContext): Value {
@@ -179,8 +179,9 @@ class Interpreter: HappyBaseVisitor<Value>() {
     }
 
     override fun visitDotCall(ctx: HappyParser.DotCallContext): Value {
-        return (scope.get(ctx.ID(0).text).value as Map<String, Value>)[ctx.ID(1).text]
-            ?: throw Error("${ctx.ID(0).text} does not have a member named ${ctx.ID(1).text}")
+        val target = (ctx.parent as HappyParser.ComplexExpressionContext).expression().accept(this)
+        return (target.value as Map<String, Value>)[ctx.ID().text]
+            ?: throw Error("$target does not have a member named ${ctx.ID().text}")
     }
 
     override fun visitIfExpression(ctx: HappyParser.IfExpressionContext): Value {

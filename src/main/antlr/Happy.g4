@@ -10,7 +10,7 @@ function: 'function' name=ID '(' arguments+=keyType (',' arguments+=keyType)* ')
 
 keyType: name=ID ':' type=ID;
 
-action: statement | expression;
+action: (statement | expression) ';'?;
 
 statement
     : variableDeclaration
@@ -27,11 +27,7 @@ whileLoop: 'while' expression '{' action* '}';
 forLoop: 'for' ID 'in' INTEGER_LITERAL '..' INTEGER_LITERAL '{' action* '}';
 
 expression
-    //: '(' expression ')' #expressionInBrackets
-    : 'true' #trueLiteral
-    | 'false' #falseLiteral
-    | INTEGER_LITERAL #integerLiteral
-    | STRING_LITERAL #stringLiteral
+    : expression postfixExpression #complexExpression
     | '!' expression #negation
     | '-' expression #unaryMinus
     | expression '*' expression #multiplication
@@ -45,13 +41,23 @@ expression
     | expression '<=' expression #lessOrEqual
     | expression '==' expression #equalTo
     | expression '!=' expression #notEqual
-    | ID #identifier
-    | ID '(' expression? (',' expression)* ')' #functionCall
-    | ID '{' (keyExpression ',')* (keyExpression)? '}' #constructor
-    | ID '.' ID #dotCall
     | ifExpression #ifExpr
     | expressionBlock #blockExpr
+    | ID '{' (keyExpression ',')* (keyExpression)? '}' #constructor
+    | primaryExpression #simpleExpression;
+
+primaryExpression
+    : '(' expression ')' #expressionInBrackets
+    | 'true' #trueLiteral
+    | 'false' #falseLiteral
+    | INTEGER_LITERAL #integerLiteral
+    | STRING_LITERAL #stringLiteral
+    | ID #identifier
     ;
+
+postfixExpression
+    : '(' expression? (',' expression)* ')' #functionCall
+    | '.' ID #dotCall;
 
 keyExpression: ID ':' expression;
 
