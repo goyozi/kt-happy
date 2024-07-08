@@ -7,15 +7,20 @@ import org.antlr.v4.runtime.CommonTokenStream
 import java.io.FileInputStream
 
 fun main(args: Array<String>) {
-    val source = FileInputStream(args[0])
-    val parser = HappyParser(CommonTokenStream(HappyLexer(CharStreams.fromStream(source))))
-    val sourceFileTree = parser.sourceFile()
+    val sourceFileTree = parseSourceFile(args[0])
 
     val typeChecker = TypeChecker()
-    typeChecker.visitSourceFile(sourceFileTree)
+//    typeChecker.visitSourceFile(sourceFileTree)
     for (typeError in typeChecker.typeErrors) {
         System.err.println(typeError)
     }
 
     Interpreter().visitSourceFile(sourceFileTree)
+}
+
+fun parseSourceFile(path: String): HappyParser.SourceFileContext {
+    val source = FileInputStream(path)
+    val parser = HappyParser(CommonTokenStream(HappyLexer(CharStreams.fromStream(source))))
+    val sourceFileTree = parser.sourceFile()
+    return sourceFileTree
 }

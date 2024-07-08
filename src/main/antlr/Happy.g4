@@ -1,10 +1,12 @@
 grammar Happy;
 
-sourceFile: (COMMENT | data | function | action)* EOF;
+sourceFile: importStatement* (COMMENT | data | function | action)* EOF;
+
+importStatement: 'import' (paths+=ID '.')* '{' (symbols+=ID ',')* (symbols+=ID)? '}';
 
 data: 'data' ID '{' (keyType ',')* (keyType)? '}';
 
-function: 'function' name=ID '(' arguments+=keyType (',' arguments+=keyType)+ ')' ':' returnType=ID '{' action* expression '}';
+function: 'function' name=ID '(' arguments+=keyType (',' arguments+=keyType)* ')' ':' returnType=ID '{' action* expression '}';
 
 keyType: name=ID ':' type=ID;
 
@@ -25,8 +27,8 @@ whileLoop: 'while' expression '{' action* '}';
 forLoop: 'for' ID 'in' INTEGER_LITERAL '..' INTEGER_LITERAL '{' action* '}';
 
 expression
-    : '(' expression ')' #expressionInBrackets
-    | 'true' #trueLiteral
+    //: '(' expression ')' #expressionInBrackets
+    : 'true' #trueLiteral
     | 'false' #falseLiteral
     | INTEGER_LITERAL #integerLiteral
     | STRING_LITERAL #stringLiteral

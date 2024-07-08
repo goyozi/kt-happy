@@ -8,8 +8,15 @@ class Interpreter: HappyBaseVisitor<Value>() {
     val functions = mutableMapOf<String, HappyParser.FunctionContext>()
 
     override fun visitSourceFile(ctx: HappyParser.SourceFileContext): Value {
+        ctx.importStatement().forEach(this::visitImportStatement)
         ctx.function().forEach(this::visitFunction)
         ctx.action().forEach(this::visitAction)
+        return none
+    }
+
+    override fun visitImportStatement(ctx: HappyParser.ImportStatementContext): Value {
+        val path = ctx.paths.joinToString("/") { it.text } + ".happy"
+        visitSourceFile(parseSourceFile(path))
         return none
     }
 
@@ -41,9 +48,9 @@ class Interpreter: HappyBaseVisitor<Value>() {
         return none
     }
 
-    override fun visitExpressionInBrackets(ctx: HappyParser.ExpressionInBracketsContext): Value {
-        return visitExpression(ctx.expression())
-    }
+//    override fun visitExpressionInBrackets(ctx: HappyParser.ExpressionInBracketsContext): Value {
+//        return visitExpression(ctx.expression())
+//    }
 
     override fun visitTrueLiteral(ctx: HappyParser.TrueLiteralContext): Value {
         return Value("Boolean", true)

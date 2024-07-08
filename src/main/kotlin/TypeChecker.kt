@@ -9,8 +9,15 @@ class TypeChecker : HappyBaseVisitor<String>() {
     val typeErrors = mutableListOf<TypeError>()
 
     override fun visitSourceFile(ctx: HappyParser.SourceFileContext): String {
+        ctx.importStatement().forEach(this::visitImportStatement)
         ctx.function().forEach(this::visitFunction)
         ctx.action().forEach(this::visitAction)
+        return "None"
+    }
+
+    override fun visitImportStatement(ctx: HappyParser.ImportStatementContext): String {
+        val path = ctx.paths.joinToString("/") { it.text } + ".happy"
+        visitSourceFile(parseSourceFile(path))
         return "None"
     }
 

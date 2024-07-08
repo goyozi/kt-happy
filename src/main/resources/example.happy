@@ -1,3 +1,7 @@
+import src.main.resources.another.{test}
+
+test("works")
+
 let a = 1
 let b = a + 1
 
