@@ -5,7 +5,6 @@ import HappyParser
 
 class Interpreter: HappyBaseVisitor<Value>() {
     val scope = Scope<Value>()
-    val functions = mutableMapOf<String, HappyParser.FunctionContext>()
 
     override fun visitSourceFile(ctx: HappyParser.SourceFileContext): Value {
         ctx.importStatement().forEach(this::visitImportStatement)

@@ -19,7 +19,7 @@ class BuiltInFunction(
 
 val printLine = BuiltInFunction(
     name = "printLine",
-    arguments = listOf("text" to "Text to print"),
+    arguments = listOf("text" to "String"),
     returnType = "None",
     description = "Prints provided text and a newline at the end",
     implementation = { println(it.get("text").value); none }

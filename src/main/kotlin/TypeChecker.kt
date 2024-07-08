@@ -5,10 +5,14 @@ import HappyParser
 
 class TypeChecker : HappyBaseVisitor<String>() {
     val scope = Scope<String>()
-    val functions = mutableMapOf<String, HappyParser.FunctionContext>()
     val typeErrors = mutableListOf<TypeError>()
 
     override fun visitSourceFile(ctx: HappyParser.SourceFileContext): String {
+        for (function in builtIns) {
+            val functionType = "(" + function.value.arguments.joinToString(",") { it.second } + ")" + "->" + function.value.returnType
+            scope.set(function.key, functionType)
+        }
+
         ctx.importStatement().forEach(this::visitImportStatement)
         ctx.function().forEach(this::visitFunction)
         ctx.action().forEach(this::visitAction)
@@ -22,7 +26,8 @@ class TypeChecker : HappyBaseVisitor<String>() {
     }
 
     override fun visitFunction(ctx: HappyParser.FunctionContext): String {
-        functions[ctx.ID(0).text] = ctx
+        val functionType = "(" + ctx.arguments.joinToString(",") { it.type.text } + ")" + "->" + ctx.returnType.text
+        scope.set(ctx.ID(0).text, functionType)
         scope.enter()
 
         for (i in 0..<ctx.arguments.size) {
@@ -68,6 +73,14 @@ class TypeChecker : HappyBaseVisitor<String>() {
         scope.set(ctx.ID().text, "Integer")
         ctx.action().forEach(this::visitAction)
         return "None"
+    }
+
+    override fun visitComplexExpression(ctx: HappyParser.ComplexExpressionContext): String {
+        return ctx.postfixExpression().accept(this)
+    }
+
+    override fun visitExpressionInBrackets(ctx: HappyParser.ExpressionInBracketsContext): String {
+        return visitExpression(ctx.expression())
     }
 
     override fun visitIntegerLiteral(ctx: HappyParser.IntegerLiteralContext): String {
@@ -149,30 +162,18 @@ class TypeChecker : HappyBaseVisitor<String>() {
     }
 
     override fun visitFunctionCall(ctx: HappyParser.FunctionCallContext): String {
-//        val function = functions[ctx.ID().text]
-//        if (function != null) {
-//            for (i in 0..<function.arguments.size) {
-//                val declaredArgumentType = function.arguments[i].type.text
-//                val actualArgumentType = visitExpression(ctx.expression(i))
-//                if (declaredArgumentType != actualArgumentType) {
-//                    typeErrors.add(TypeError("${ctx.start.line}", declaredArgumentType, actualArgumentType))
-//                }
-//            }
-//            return function.returnType.text
-//        }
-//
-//        val builtInFunction = builtIns[ctx.ID().text]
-//        if (builtInFunction != null) {
-////            for (i in 0..<builtInFunction.arguments.size) {
-////                scope.set(builtInFunction.arguments[i].first, visitExpression(ctx.expression(i)))
-////            }
-////            val result = builtInFunction.implementation(scope)
-////            scope.leave()
-//            return builtInFunction.returnType
-//        }
-//
-//        throw Error("Undeclared function: ${ctx.ID().text}")
-        return "TODO"
+        val functionType = (ctx.parent as HappyParser.ComplexExpressionContext).expression().accept(this)
+        val (argumentsInBrackets, returnType) = functionType.split("->")
+        val arguments = argumentsInBrackets.drop(1).dropLast(1).split(",")
+
+        for (i in arguments.indices) {
+            val declaredArgumentType = arguments[i]
+            val actualArgumentType = visitExpression(ctx.expression(i))
+            if (declaredArgumentType != actualArgumentType) {
+                typeErrors.add(TypeError("${ctx.start.line}", declaredArgumentType, actualArgumentType))
+            }
+        }
+        return returnType
     }
 
     override fun visitConstructor(ctx: HappyParser.ConstructorContext): String {
@@ -202,6 +203,6 @@ class TypeChecker : HappyBaseVisitor<String>() {
     }
 
     fun visitExpression(ctx: HappyParser.ExpressionContext): String {
-        return ctx.accept(this)
+        return ctx.accept(this) ?: throw Error("Unsupported expression: ${ctx.text}")
     }
 }

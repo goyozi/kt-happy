@@ -10,7 +10,7 @@ fun main(args: Array<String>) {
     val sourceFileTree = parseSourceFile(args[0])
 
     val typeChecker = TypeChecker()
-//    typeChecker.visitSourceFile(sourceFileTree)
+    typeChecker.visitSourceFile(sourceFileTree)
     for (typeError in typeChecker.typeErrors) {
         System.err.println(typeError)
     }
