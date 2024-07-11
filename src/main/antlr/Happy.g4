@@ -6,7 +6,7 @@ importStatement: 'import' (paths+=ID '.')* '{' (symbols+=ID ',')* (symbols+=ID)?
 
 data: 'data' ID '{' (keyType ',')* (keyType)? '}';
 
-function: 'function' name=ID '(' arguments+=keyType (',' arguments+=keyType)* ')' ':' returnType=ID '{' action* expression '}';
+function: 'function' name=ID '(' (arguments+=keyType ',')* (arguments+=keyType)? ')' ':' returnType=ID '{' action* expression '}';
 
 keyType: name=ID ':' type=ID;
 

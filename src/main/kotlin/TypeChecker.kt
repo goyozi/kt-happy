@@ -10,7 +10,7 @@ class TypeChecker : HappyBaseVisitor<String>() {
     override fun visitSourceFile(ctx: HappyParser.SourceFileContext): String {
         for (function in builtIns) {
             val functionType = "(" + function.value.arguments.joinToString(",") { it.second } + ")" + "->" + function.value.returnType
-            scope.set(function.key, functionType)
+            scope.define(function.key, functionType)
         }
 
         ctx.importStatement().forEach(this::visitImportStatement)
@@ -27,11 +27,11 @@ class TypeChecker : HappyBaseVisitor<String>() {
 
     override fun visitFunction(ctx: HappyParser.FunctionContext): String {
         val functionType = "(" + ctx.arguments.joinToString(",") { it.type.text } + ")" + "->" + ctx.returnType.text
-        scope.set(ctx.ID(0).text, functionType)
+        scope.define(ctx.ID(0).text, functionType)
         scope.enter()
 
         for (i in 0..<ctx.arguments.size) {
-            scope.set(ctx.arguments[i].name.text, ctx.arguments[i].type.text)
+            scope.define(ctx.arguments[i].name.text, ctx.arguments[i].type.text)
         }
 
         val declaredReturnType = ctx.returnType.text
@@ -46,7 +46,7 @@ class TypeChecker : HappyBaseVisitor<String>() {
     override fun visitStatement(ctx: HappyParser.StatementContext): String {
         if (ctx.variableDeclaration() != null) {
             val expressionType = visitExpression(ctx.variableDeclaration().expression())
-            scope.set(
+            scope.define(
                 ctx.variableDeclaration().ID(0).text,
                 ctx.variableDeclaration().ID().getOrNull(1)?.text ?: expressionType
             )
@@ -70,7 +70,7 @@ class TypeChecker : HappyBaseVisitor<String>() {
     }
 
     override fun visitForLoop(ctx: HappyParser.ForLoopContext): String {
-        scope.set(ctx.ID().text, "Integer")
+        scope.define(ctx.ID().text, "Integer")
         ctx.action().forEach(this::visitAction)
         return "None"
     }

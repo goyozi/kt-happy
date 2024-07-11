@@ -2,9 +2,11 @@ package io.github.goyozi.kthappy
 
 import HappyBaseVisitor
 import HappyParser
+import org.antlr.v4.runtime.tree.ParseTreeProperty
 
 class Interpreter: HappyBaseVisitor<Value>() {
     val scope = Scope<Value>()
+    val functionParent = ParseTreeProperty<Layer<Value>>()
 
     override fun visitSourceFile(ctx: HappyParser.SourceFileContext): Value {
         ctx.importStatement().forEach(this::visitImportStatement)
@@ -15,22 +17,31 @@ class Interpreter: HappyBaseVisitor<Value>() {
 
     override fun visitImportStatement(ctx: HappyParser.ImportStatementContext): Value {
         val path = ctx.paths.joinToString("/") { it.text } + ".happy"
+        val currentScope = scope.stack.last()
+        scope.enter(Layer())
         visitSourceFile(parseSourceFile(path))
+        for (symbol in ctx.symbols) {
+            currentScope.bindings[symbol.text] = scope.get(symbol.text)
+        }
+        scope.leave()
         return none
     }
 
     override fun visitFunction(ctx: HappyParser.FunctionContext): Value {
-        scope.set(ctx.name.text, Value("DeclaredFunction", ctx))
+        scope.define(ctx.name.text, Value("DeclaredFunction", ctx))
+        functionParent.put(ctx, scope.stack.last())
         return none
     }
 
     override fun visitStatement(ctx: HappyParser.StatementContext): Value {
         if (ctx.variableDeclaration() != null) {
-            scope.set(ctx.variableDeclaration().ID(0).text, visitExpression(ctx.variableDeclaration().expression()))
+            scope.define(ctx.variableDeclaration().ID(0).text, visitExpression(ctx.variableDeclaration().expression()))
         } else if (ctx.variableAssignment() != null) {
-            scope.set(ctx.variableAssignment().ID().text, visitExpression(ctx.variableAssignment().expression()))
+            scope.assign(ctx.variableAssignment().ID().text, visitExpression(ctx.variableAssignment().expression()))
         } else if (ctx.whileLoop() != null) {
+            scope.enter()
             while (visitExpression(ctx.whileLoop().expression()).value == true) ctx.whileLoop().action().forEach(this::visitAction)
+            scope.leave()
         } else if (ctx.forLoop() != null) {
             visitForLoop(ctx.forLoop())
         } else {
@@ -40,10 +51,12 @@ class Interpreter: HappyBaseVisitor<Value>() {
     }
 
     override fun visitForLoop(ctx: HappyParser.ForLoopContext): Value {
+        scope.enter()
         for (i in ctx.INTEGER_LITERAL(0).text.toInt()..ctx.INTEGER_LITERAL(1).text.toInt()) {
-            scope.set(ctx.ID().text, Value("Integer", i))
+            scope.define(ctx.ID().text, Value("Integer", i))
             ctx.action().forEach(this::visitAction)
         }
+        scope.leave()
         return none
     }
 
@@ -151,12 +164,11 @@ class Interpreter: HappyBaseVisitor<Value>() {
     }
 
     override fun visitFunctionCall(ctx: HappyParser.FunctionCallContext): Value {
-        scope.enter()
-
         val function = (ctx.parent as HappyParser.ComplexExpressionContext).expression().accept(this).value
         if (function is HappyParser.FunctionContext) {
+            scope.enter(functionParent.get(function))
             for (i in 0..<function.arguments.size) {
-                scope.set(function.arguments[i].name.text, visitExpression(ctx.expression(i)))
+                scope.define(function.arguments[i].name.text, visitExpression(ctx.expression(i)))
             }
             function.action().forEach(this::visitAction)
             val result = visitExpression(function.expression())
@@ -164,9 +176,10 @@ class Interpreter: HappyBaseVisitor<Value>() {
             return result
         }
 
+        scope.enter()
         val builtInFunction = function as BuiltInFunction
         for (i in 0..<builtInFunction.arguments.size) {
-            scope.set(builtInFunction.arguments[i].first, visitExpression(ctx.expression(i)))
+            scope.define(builtInFunction.arguments[i].first, visitExpression(ctx.expression(i)))
         }
         val result = builtInFunction.implementation(scope)
         scope.leave()
@@ -191,8 +204,9 @@ class Interpreter: HappyBaseVisitor<Value>() {
     }
 
     override fun visitExpressionBlock(ctx: HappyParser.ExpressionBlockContext): Value {
+        scope.enter()
         ctx.action().forEach(this::visitAction)
-        return visitExpression(ctx.expression())
+        return visitExpression(ctx.expression()).also { scope.leave() }
     }
 
     fun visitExpression(ctx: HappyParser.ExpressionContext): Value {
