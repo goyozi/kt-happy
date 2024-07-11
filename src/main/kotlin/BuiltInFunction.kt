@@ -9,7 +9,7 @@ class BuiltInFunction(
     val arguments: List<Pair<String, String>>,
     val returnType: String,
     val description: String,
-    val implementation: (Scope<Value>) -> Value
+    val implementation: (Scope<Any>) -> Any
 ) {
 
     init {
@@ -22,7 +22,7 @@ val printLine = BuiltInFunction(
     arguments = listOf("text" to "Any"),
     returnType = "None",
     description = "Prints provided text and a newline at the end",
-    implementation = { println(it.get("text").value); none }
+    implementation = { println(it.get("text")) }
 )
 
 val readLine = BuiltInFunction(
@@ -30,5 +30,5 @@ val readLine = BuiltInFunction(
     arguments = listOf(),
     returnType = "String",
     description = "Reads a line from standard input and returns the text without newline at the end",
-    implementation = { Value("String", readln()) }
+    implementation = { readln() }
 )

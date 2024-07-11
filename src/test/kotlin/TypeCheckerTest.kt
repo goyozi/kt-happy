@@ -1,6 +1,5 @@
 import io.github.goyozi.kthappy.TypeChecker
 import io.github.goyozi.kthappy.TypeError
-import io.github.goyozi.kthappy.Value
 import org.antlr.v4.runtime.CharStreams
 import org.antlr.v4.runtime.CommonTokenStream
 import org.junit.jupiter.api.Test

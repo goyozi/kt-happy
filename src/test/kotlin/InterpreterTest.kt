@@ -1,5 +1,4 @@
 import io.github.goyozi.kthappy.Interpreter
-import io.github.goyozi.kthappy.Value
 import org.antlr.v4.runtime.CharStreams
 import org.antlr.v4.runtime.CommonTokenStream
 import org.junit.jupiter.api.BeforeEach
@@ -17,37 +16,37 @@ class InterpreterTest {
 
     @Test
     fun booleanLiteral() {
-        assertExpression("true", Value("Boolean", true))
-        assertExpression("false", Value("Boolean", false))
+        assertExpression("true", true)
+        assertExpression("false", false)
     }
 
     @Test
     fun intLiteral() {
-        assertExpression("123", Value("Integer", 123))
+        assertExpression("123", 123)
     }
 
     @Test
     fun stringLiteral() {
-        assertExpression("\"it works\"", Value("String", "it works"))
+        assertExpression("\"it works\"", "it works")
     }
 
     @Test
     fun negation() {
-        assertExpression("!false", Value("Boolean", true))
-        assertExpression("!true", Value("Boolean", false))
-        assertExpression("!(1 > 2)", Value("Boolean", true))
-        assertExpression("!(2 > 1)", Value("Boolean", false))
+        assertExpression("!false", true)
+        assertExpression("!true", false)
+        assertExpression("!(1 > 2)", true)
+        assertExpression("!(2 > 1)", false)
     }
 
     @Test
     fun arithmeticExpression() {
-        assertExpression("-5", Value("Integer", -5))
-        assertExpression("-5 + 10", Value("Integer", 5))
-        assertExpression("1 + 2", Value("Integer", 3))
-        assertExpression("3 - 2", Value("Integer", 1))
-        assertExpression("2 * 3", Value("Integer", 6))
-        assertExpression("6 / 3", Value("Integer", 2))
-        assertExpression("8 % 3", Value("Integer", 2))
+        assertExpression("-5", -5)
+        assertExpression("-5 + 10", 5)
+        assertExpression("1 + 2", 3)
+        assertExpression("3 - 2", 1)
+        assertExpression("2 * 3", 6)
+        assertExpression("6 / 3", 2)
+        assertExpression("8 % 3", 2)
     }
 
     @Test
@@ -59,41 +58,47 @@ class InterpreterTest {
               let y = 2
               x + y
             }
-            """, Value("Integer", 3)
+            """, 3
         )
     }
 
     @Test
     fun ifExpression() {
-        assertExpression("if 2 > 1 { \"it works\" } else { \"it doesn't\" }", Value("String", "it works"));
-        assertExpression("if 1 > 2 { \"it doesn't\" } else { \"it works\" }", Value("String", "it works"));
-        assertExpression("if 1 > 2 { \"it doesn't\" } else if 3 > 2 { \"it works\" } else { \"it doesn't\" }", Value("String", "it works"));
-        assertExpression("if 1 > 2 { \"it doesn't\" } else if 2 > 3 { \"it doesn't\" } else { \"it works\" }", Value("String", "it works"));
+        assertExpression("if 2 > 1 { \"it works\" } else { \"it doesn't\" }", "it works");
+        assertExpression("if 1 > 2 { \"it doesn't\" } else { \"it works\" }", "it works");
+        assertExpression(
+            "if 1 > 2 { \"it doesn't\" } else if 3 > 2 { \"it works\" } else { \"it doesn't\" }",
+            "it works"
+        );
+        assertExpression(
+            "if 1 > 2 { \"it doesn't\" } else if 2 > 3 { \"it doesn't\" } else { \"it works\" }",
+            "it works"
+        );
     }
 
     @Test
     fun comparisonExpression() {
-        assertExpression("1 == 1", Value("Boolean", true))
-        assertExpression("1 == 2", Value("Boolean", false))
-        assertExpression("1 != 2", Value("Boolean", true))
-        assertExpression("1 != 1", Value("Boolean", false))
-        assertExpression("2 > 1", Value("Boolean", true))
-        assertExpression("1 > 2", Value("Boolean", false))
-        assertExpression("1 < 2", Value("Boolean", true))
-        assertExpression("2 < 1", Value("Boolean", false))
-        assertExpression("1 >= 1", Value("Boolean", true))
-        assertExpression("1 >= 2", Value("Boolean", false))
-        assertExpression("1 <= 1", Value("Boolean", true))
-        assertExpression("2 <= 1", Value("Boolean", false))
+        assertExpression("1 == 1", true)
+        assertExpression("1 == 2", false)
+        assertExpression("1 != 2", true)
+        assertExpression("1 != 1", false)
+        assertExpression("2 > 1", true)
+        assertExpression("1 > 2", false)
+        assertExpression("1 < 2", true)
+        assertExpression("2 < 1", false)
+        assertExpression("1 >= 1", true)
+        assertExpression("1 >= 2", false)
+        assertExpression("1 <= 1", true)
+        assertExpression("2 <= 1", false)
     }
 
     @Test
     fun operatorPrecedence() {
-        assertExpression("1 + 2 * 2 + 1", Value("Integer", 6))
-        assertExpression("(1 + 2) * 2 + 1", Value("Integer", 7))
-        assertExpression("2 + 2 * (2 + 1)", Value("Integer", 8))
-        assertExpression("(1 + 2) * (2 + 1)", Value("Integer", 9))
-        assertExpression("3 + 2 > 3 + 1", Value("Boolean", true))
+        assertExpression("1 + 2 * 2 + 1", 6)
+        assertExpression("(1 + 2) * 2 + 1", 7)
+        assertExpression("2 + 2 * (2 + 1)", 8)
+        assertExpression("(1 + 2) * (2 + 1)", 9)
+        assertExpression("3 + 2 > 3 + 1", true)
     }
 
     @Test
@@ -106,7 +111,7 @@ class InterpreterTest {
               x
             }
             """,
-            Value("Integer", 6)
+            6
         )
     }
 
@@ -124,7 +129,7 @@ class InterpreterTest {
               x
             }
             """,
-            Value("Integer", 6)
+            6
         )
     }
 
@@ -137,10 +142,10 @@ class InterpreterTest {
             }
             """
         )
-        assertExpression("add(5, 10)", Value("Integer", 15))
+        assertExpression("add(5, 10)", 15)
     }
 
-    private fun assertExpression(code: String, expected: Value) {
+    private fun assertExpression(code: String, expected: Any) {
         val parser = HappyParser(CommonTokenStream(HappyLexer(CharStreams.fromString(code))))
         val result = interpreter.visitExpression(parser.expression())
         assertEquals(expected, result)

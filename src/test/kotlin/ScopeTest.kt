@@ -1,5 +1,4 @@
 import io.github.goyozi.kthappy.Interpreter
-import io.github.goyozi.kthappy.Value
 import org.antlr.v4.runtime.CharStreams
 import org.antlr.v4.runtime.CommonTokenStream
 import org.junit.jupiter.api.BeforeEach
@@ -20,7 +19,7 @@ class ScopeTest {
     @Test
     fun fileScope() {
         exec("let x = 5")
-        assertExpression("x", Value("Integer", 5))
+        assertExpression("x", 5)
 
         val importFile = File("build/tmp/example.happy")
         try {
@@ -34,7 +33,7 @@ class ScopeTest {
             """
             )
             exec("import build.tmp.example.{visible}")
-            assertExpression("visible()", Value("Integer", 10))
+            assertExpression("visible()", 10)
 
             assertThrows<IllegalStateException>("unimported function") { exec("invisible()") }
 
@@ -49,14 +48,14 @@ class ScopeTest {
     @Test
     fun blockScope() {
         exec("let x = 5")
-        assertExpression("{ x }", Value("Integer", 5))
-        assertExpression("{ { x } }", Value("Integer", 5))
-        assertExpression("{ x = 10 x }", Value("Integer", 10))
-        assertExpression("x", Value("Integer", 10))
-        assertExpression("{ let x = 15 x }", Value("Integer", 15))
-        assertExpression("x", Value("Integer", 10))
-        assertExpression("{ x = 20 { let x = 25 x } }", Value("Integer", 25))
-        assertExpression("x", Value("Integer", 20))
+        assertExpression("{ x }", 5)
+        assertExpression("{ { x } }", 5)
+        assertExpression("{ x = 10 x }", 10)
+        assertExpression("x", 10)
+        assertExpression("{ let x = 15 x }", 15)
+        assertExpression("x", 10)
+        assertExpression("{ x = 20 { let x = 25 x } }", 25)
+        assertExpression("x", 20)
         assertThrows<IllegalStateException> { exec("{ let y = 5 y } y") }
     }
 
@@ -64,16 +63,16 @@ class ScopeTest {
     fun functionScope() {
         exec("let x = 5")
         exec("function getx(): Integer { x }")
-        assertExpression("getx()", Value("Integer", 5))
+        assertExpression("getx()", 5)
         exec("function setx(): Integer { x = 10 x }")
-        assertExpression("setx()", Value("Integer", 10))
-        assertExpression("x", Value("Integer", 10))
+        assertExpression("setx()", 10)
+        assertExpression("x", 10)
         exec("function shadowx(): Integer { let x = 15 x }")
-        assertExpression("shadowx()", Value("Integer", 15))
-        assertExpression("x", Value("Integer", 10))
+        assertExpression("shadowx()", 15)
+        assertExpression("x", 10)
         exec("function argshadowx(x: Integer): Integer { x = 20 x }")
-        assertExpression("argshadowx(x)", Value("Integer", 20))
-        assertExpression("x", Value("Integer", 10))
+        assertExpression("argshadowx(x)", 20)
+        assertExpression("x", 10)
         exec("function leftovers(y: Integer): Integer { let z = y + 5 z }")
         assertThrows<IllegalStateException> { exec("leftovers(x) y") }
         assertThrows<IllegalStateException> { exec("leftovers(x) z") }
@@ -87,10 +86,10 @@ class ScopeTest {
         exec("let i = 42")
         exec("let x = 5")
         exec("for i in 1..5 { x = x + i }")
-        assertExpression("i", Value("Integer", 42))
-        assertExpression("x", Value("Integer", 20))
+        assertExpression("i", 42)
+        assertExpression("x", 20)
         exec("for i in 1..5 { let x = x + i }")
-        assertExpression("x", Value("Integer", 20))
+        assertExpression("x", 20)
         assertThrows<IllegalStateException> { exec("for j in 1..5 {} j") }
         assertThrows<IllegalStateException> { exec("for j in 1..5 { let y = 5 } y") }
     }
@@ -99,7 +98,7 @@ class ScopeTest {
     fun whileLoopScope() {
         exec("let x = 5")
         exec("while x < 10 { x = x + 1 }")
-        assertExpression("x", Value("Integer", 10))
+        assertExpression("x", 10)
         exec(
             """
             let stop = false
@@ -109,7 +108,7 @@ class ScopeTest {
             }
         """
         )
-        assertExpression("x", Value("Integer", 10))
+        assertExpression("x", 10)
         assertThrows<IllegalStateException> {
             exec(
                 """
@@ -129,7 +128,7 @@ class ScopeTest {
         interpreter.visitSourceFile(parser.sourceFile())
     }
 
-    private fun assertExpression(code: String, expected: Value) {
+    private fun assertExpression(code: String, expected: Any) {
         val parser = HappyParser(CommonTokenStream(HappyLexer(CharStreams.fromString(code))))
         val result = interpreter.visitExpression(parser.expression())
         assertEquals(expected, result)
