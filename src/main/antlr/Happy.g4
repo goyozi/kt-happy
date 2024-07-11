@@ -1,10 +1,14 @@
 grammar Happy;
 
-sourceFile: importStatement* (COMMENT | data | function | action)* EOF;
+sourceFile: importStatement* (COMMENT | data | enum | function | action)* EOF;
 
 importStatement: 'import' (paths+=ID '.')* '{' (symbols+=ID ',')* (symbols+=ID)? '}';
 
 data: 'data' ID '{' (keyType ',')* (keyType)? '}';
+
+enum: 'enum' name=ID '{' (values+=typeOrSymbol ',')* (values+=typeOrSymbol)? '}';
+
+typeOrSymbol: ID | SYMBOL;
 
 function: 'function' name=ID '(' (arguments+=keyType ',')* (arguments+=keyType)? ')' ':' returnType=ID '{' action* expression '}';
 
@@ -18,7 +22,7 @@ statement
     | whileLoop
     | forLoop;
 
-variableDeclaration: 'let' ID (':' ID)? '=' expression;
+variableDeclaration: 'let' ID (':' ID)? ('=' expression)?;
 
 variableAssignment: ID '=' expression;
 
@@ -53,6 +57,7 @@ primaryExpression
     | INTEGER_LITERAL #integerLiteral
     | STRING_LITERAL #stringLiteral
     | ID #identifier
+    | SYMBOL #symbol
     ;
 
 postfixExpression
@@ -67,6 +72,7 @@ expressionBlock: '{' (action)* expression '}';
 
 
 COMMENT: '//' ~[\r\n]*;
+SYMBOL: '\''ID;
 ID: [a-zA-Z]+;
 INTEGER_LITERAL: [0-9]+;
 STRING_LITERAL: '"' ~ ["\r\n]* '"';

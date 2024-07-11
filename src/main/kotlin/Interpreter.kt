@@ -164,6 +164,10 @@ class Interpreter : HappyBaseVisitor<Any>() {
         return builtIns[ctx.ID().text] ?: scope.get(ctx.ID().text)
     }
 
+    override fun visitSymbol(ctx: HappyParser.SymbolContext): String {
+        return ctx.SYMBOL().text.drop(1)
+    }
+
     override fun visitFunctionCall(ctx: HappyParser.FunctionCallContext): Any {
         val function = (ctx.parent as HappyParser.ComplexExpressionContext).expression().accept(this)
         if (function is HappyParser.FunctionContext) {

@@ -57,3 +57,12 @@ for i in 1..3 {
 tom;
 (5 + 3)
 add((5 + ((3))), 2)
+
+enum Wow { Integer, String, 'None }
+
+let x: Wow = 5
+printLine(x)
+x = "I'm a text now"
+printLine(x)
+x = 'None
+printLine(x)

@@ -36,7 +36,7 @@ class TypeCheckerTest {
 
     @Test
     fun functionCall() {
-        defineFunction(
+        exec(
             """
             function add(a: Integer, b: Integer): Integer {
               a + b
@@ -49,7 +49,7 @@ class TypeCheckerTest {
 
     @Test
     fun functionArgumentTypeCheck() {
-        defineFunction(
+        exec(
             """
             function add(a: Integer, b: Integer): Integer {
               a + b
@@ -62,7 +62,7 @@ class TypeCheckerTest {
 
     @Test
     fun functionReturnTypeCheck() {
-        defineFunction(
+        exec(
             """
             function add(a: Integer, b: Integer): Integer {
               "not a number"
@@ -72,14 +72,31 @@ class TypeCheckerTest {
         assertEquals(listOf(TypeError("2", "Integer", "String")), typeChecker.typeErrors)
     }
 
+    @Test
+    fun enumTypeCheck() {
+        exec(
+            """
+            enum Choice { 'A, Integer }
+            let choice: Choice
+            """
+        )
+        assertType("choice", "Choice")
+        exec("choice = 'A")
+        assertEquals(listOf(), typeChecker.typeErrors)
+        exec("choice = 5")
+        assertEquals(listOf(), typeChecker.typeErrors)
+        exec("choice = 'B")
+        assertEquals(listOf(TypeError("1", "Choice", "'B")), typeChecker.typeErrors)
+    }
+
     private fun assertType(code: String, expected: String) {
         val parser = HappyParser(CommonTokenStream(HappyLexer(CharStreams.fromString(code))))
         val result = typeChecker.visitExpression(parser.expression())
         assertEquals(expected, result)
     }
 
-    private fun defineFunction(code: String) {
+    private fun exec(code: String) {
         val parser = HappyParser(CommonTokenStream(HappyLexer(CharStreams.fromString(code))))
-        typeChecker.visitFunction(parser.function())
+        typeChecker.visitSourceFile(parser.sourceFile())
     }
 }

@@ -135,7 +135,7 @@ class InterpreterTest {
 
     @Test
     fun functionCall() {
-        defineFunction(
+        exec(
             """
             function add(a: Integer, b: Integer): Integer {
               a + b
@@ -151,8 +151,8 @@ class InterpreterTest {
         assertEquals(expected, result)
     }
 
-    private fun defineFunction(code: String) {
+    private fun exec(code: String) {
         val parser = HappyParser(CommonTokenStream(HappyLexer(CharStreams.fromString(code))))
-        interpreter.visitFunction(parser.function())
+        interpreter.visitSourceFile(parser.sourceFile())
     }
 }
