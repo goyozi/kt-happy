@@ -28,13 +28,13 @@ class TypeChecker : HappyBaseVisitor<String>() {
     }
 
     override fun visitEnum(ctx: HappyParser.EnumContext): String {
-        declaredTypes[ctx.name.text] = DeclaredType(ctx.name.text, ctx.typeOrSymbol().map { it.text })
+        declaredTypes[ctx.name.text] = DeclaredType(ctx.name.text, ctx.typeOrSymbol().map { it.text }.filter { it !== ctx.genericType?.text }, ctx.genericType?.text)
         return "None"
     }
 
     override fun visitFunction(ctx: HappyParser.FunctionContext): String {
         val functionType = "(" + ctx.arguments.joinToString(",") { it.type.text } + ")" + "->" + ctx.returnType.text
-        scope.define(ctx.ID(0).text, functionType)
+        scope.define(ctx.ID().text, functionType)
         scope.enter()
 
         for (i in 0..<ctx.arguments.size) {
@@ -56,15 +56,15 @@ class TypeChecker : HappyBaseVisitor<String>() {
                 ctx.variableDeclaration().expression()
             ) else null
             scope.define(
-                ctx.variableDeclaration().ID(0).text,
-                ctx.variableDeclaration().ID().getOrNull(1)?.text ?: expressionType!!
+                ctx.variableDeclaration().ID().text,
+                ctx.variableDeclaration().typeSpec()?.text ?: expressionType!!
             )
-            if (ctx.variableDeclaration().ID().size == 2 && expressionType != null && incompatibleTypes(
-                    ctx.variableDeclaration().ID(1).text,
+            if (ctx.variableDeclaration().typeSpec() != null && expressionType != null && incompatibleTypes(
+                    ctx.variableDeclaration().typeSpec().text,
                     expressionType
                 )
             ) {
-                typeErrors.add(TypeError("${ctx.start.line}", ctx.variableDeclaration().ID(1).text, expressionType))
+                typeErrors.add(TypeError("${ctx.start.line}", ctx.variableDeclaration().typeSpec().text, expressionType))
             }
         } else if (ctx.variableAssignment() != null) {
             val declaredType = scope.get(ctx.variableAssignment().ID().text)
@@ -212,6 +212,10 @@ class TypeChecker : HappyBaseVisitor<String>() {
         return "TODO"
     }
 
+    override fun visitTypeCast(ctx: HappyParser.TypeCastContext): String {
+        return ctx.typeSpec().text
+    }
+
     override fun visitIfExpression(ctx: HappyParser.IfExpressionContext): String {
         val conditionMet = visitExpression(ctx.expression())
         // condition met must be boolean
@@ -234,7 +238,8 @@ class TypeChecker : HappyBaseVisitor<String>() {
     private fun incompatibleTypes(declaredType: String, expressionType: String): Boolean {
         val matchingTypes = declaredType == expressionType
         val allTypes = expressionType.split("|")
-        val withinEnum = allTypes.all { declaredTypes[declaredType]?.values?.contains(it) ?: false }
+        val nonGenericType = declaredType.replaceAfter("<", "").replace("<", "")
+        val withinEnum = allTypes.all { (declaredTypes[nonGenericType]?.values?.contains(it) ?: false) || declaredType.endsWith("<$it>") }
         return !matchingTypes && !withinEnum
     }
 }

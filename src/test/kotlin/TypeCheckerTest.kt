@@ -130,6 +130,40 @@ class TypeCheckerTest {
         assertEquals(listOf(TypeError("2", "Bunch", "Integer|'One|String")), typeChecker.typeErrors)
     }
 
+    @Test
+    fun functionReturnGenericUnionTypeCheck() {
+        exec(
+            """
+            enum Option<T> { T, 'None }
+            """
+        )
+        exec(
+            """
+            function returnIfSmall(num: Integer): Option<Integer> {
+                if num <= 5 { num } else { 'None }
+            }
+            """
+        )
+        assertEquals(listOf(), typeChecker.typeErrors)
+    }
+
+    @Test
+    fun genericEnumTypeCheck() {
+        exec(
+            """
+            enum Opt<T> { T, 'None }
+            let maybe: Opt<Integer>
+            """
+        )
+        assertType("maybe", "Opt<Integer>")
+        exec("maybe = 5")
+        assertEquals(listOf(), typeChecker.typeErrors)
+        exec("maybe = 'None")
+        assertEquals(listOf(), typeChecker.typeErrors)
+        exec("maybe = false")
+        assertEquals(listOf(TypeError("1", "Opt<Integer>", "Boolean")), typeChecker.typeErrors)
+    }
+
     private fun assertType(code: String, expected: String) {
         val parser = HappyParser(CommonTokenStream(HappyLexer(CharStreams.fromString(code))))
         val result = typeChecker.visitExpression(parser.expression())

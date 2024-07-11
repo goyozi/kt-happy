@@ -35,7 +35,7 @@ class Interpreter : HappyBaseVisitor<Any>() {
 
     override fun visitStatement(ctx: HappyParser.StatementContext): Any {
         if (ctx.variableDeclaration() != null) {
-            scope.define(ctx.variableDeclaration().ID(0).text, visitExpression(ctx.variableDeclaration().expression()))
+            scope.define(ctx.variableDeclaration().ID().text, visitExpression(ctx.variableDeclaration().expression()))
         } else if (ctx.variableAssignment() != null) {
             scope.assign(ctx.variableAssignment().ID().text, visitExpression(ctx.variableAssignment().expression()))
         } else if (ctx.whileLoop() != null) {
@@ -199,6 +199,11 @@ class Interpreter : HappyBaseVisitor<Any>() {
         val target = (ctx.parent as HappyParser.ComplexExpressionContext).expression().accept(this)
         return (target as Map<String, Any>)[ctx.ID().text]
             ?: throw Error("$target does not have a member named ${ctx.ID().text}")
+    }
+
+    override fun visitTypeCast(ctx: HappyParser.TypeCastContext): Any {
+        // TODO: actual type cast?
+        return (ctx.parent as HappyParser.ComplexExpressionContext).expression().accept(this)
     }
 
     override fun visitIfExpression(ctx: HappyParser.IfExpressionContext): Any {

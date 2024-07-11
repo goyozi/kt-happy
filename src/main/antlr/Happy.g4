@@ -6,13 +6,13 @@ importStatement: 'import' (paths+=ID '.')* '{' (symbols+=ID ',')* (symbols+=ID)?
 
 data: 'data' ID '{' (keyType ',')* (keyType)? '}';
 
-enum: 'enum' name=ID '{' (values+=typeOrSymbol ',')* (values+=typeOrSymbol)? '}';
+enum: 'enum' name=ID ('<' genericType=ID '>')? '{' (values+=typeOrSymbol ',')* (values+=typeOrSymbol)? '}';
 
 typeOrSymbol: ID | SYMBOL;
 
-function: 'function' name=ID '(' (arguments+=keyType ',')* (arguments+=keyType)? ')' ':' returnType=ID '{' action* expression '}';
+function: 'function' name=ID '(' (arguments+=keyType ',')* (arguments+=keyType)? ')' ':' returnType=typeSpec '{' action* expression '}';
 
-keyType: name=ID ':' type=ID;
+keyType: name=ID ':' type=typeSpec;
 
 action: (statement | expression) ';'?;
 
@@ -22,7 +22,7 @@ statement
     | whileLoop
     | forLoop;
 
-variableDeclaration: 'let' ID (':' ID)? ('=' expression)?;
+variableDeclaration: 'let' ID (':' typeSpec)? ('=' expression)?;
 
 variableAssignment: ID '=' expression;
 
@@ -62,7 +62,8 @@ primaryExpression
 
 postfixExpression
     : '(' expression? (',' expression)* ')' #functionCall
-    | '.' ID #dotCall;
+    | '.' ID #dotCall
+    | 'as' typeSpec #typeCast;
 
 keyExpression: ID ':' expression;
 
@@ -70,6 +71,7 @@ ifExpression: 'if' expression expressionBlock 'else' (expressionBlock | ifExpres
 
 expressionBlock: '{' (action)* expression '}';
 
+typeSpec: type=ID ('<' genericType=ID '>')?;
 
 COMMENT: '//' ~[\r\n]*;
 SYMBOL: '\''ID;

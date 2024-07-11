@@ -76,3 +76,16 @@ function check(num: Integer): Wow {
 printLine(check(3))
 printLine(check(50))
 printLine(check(101))
+
+enum Option<T> { T, 'None }
+
+function returnIfSmall(num: Integer): Option<Integer> {
+  if num <= 5 { num } else { 'None }
+}
+
+function noneToFortyTwo(opt: Option<Integer>): Integer {
+  if opt == 'None { 42 } else { opt as Integer }
+}
+
+printLine(noneToFortyTwo(returnIfSmall(5)))
+printLine(noneToFortyTwo(returnIfSmall(100)))
