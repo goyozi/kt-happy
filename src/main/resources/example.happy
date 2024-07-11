@@ -66,3 +66,13 @@ x = "I'm a text now"
 printLine(x)
 x = 'None
 printLine(x)
+
+function check(num: Integer): Wow {
+  if num <= 5 { num }
+  else if num <= 100 { "it's a big one" }
+  else { 'None }
+}
+
+printLine(check(3))
+printLine(check(50))
+printLine(check(101))

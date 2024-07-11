@@ -96,6 +96,14 @@ class TypeChecker : HappyBaseVisitor<String>() {
         return visitExpression(ctx.expression())
     }
 
+    override fun visitTrueLiteral(ctx: HappyParser.TrueLiteralContext): String {
+        return "Boolean"
+    }
+
+    override fun visitFalseLiteral(ctx: HappyParser.FalseLiteralContext): String {
+        return "Boolean"
+    }
+
     override fun visitIntegerLiteral(ctx: HappyParser.IntegerLiteralContext): String {
         return "Integer"
     }
@@ -211,7 +219,7 @@ class TypeChecker : HappyBaseVisitor<String>() {
         val elseType = if (ctx.ifExpression() != null) visitIfExpression(ctx.ifExpression())
         else visitExpressionBlock(ctx.expressionBlock(1))
         // if type must match else type
-        return ifType
+        return if (ifType == elseType) ifType else "$ifType|$elseType"
     }
 
     override fun visitExpressionBlock(ctx: HappyParser.ExpressionBlockContext): String {
@@ -225,7 +233,8 @@ class TypeChecker : HappyBaseVisitor<String>() {
 
     private fun incompatibleTypes(declaredType: String, expressionType: String): Boolean {
         val matchingTypes = declaredType == expressionType
-        val withinEnum = declaredTypes[declaredType]?.values?.contains(expressionType) ?: false
+        val allTypes = expressionType.split("|")
+        val withinEnum = allTypes.all { declaredTypes[declaredType]?.values?.contains(it) ?: false }
         return !matchingTypes && !withinEnum
     }
 }
