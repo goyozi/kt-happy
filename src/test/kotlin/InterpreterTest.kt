@@ -145,6 +145,13 @@ class InterpreterTest {
         assertExpression("add(5, 10)", 15)
     }
 
+    @Test
+    fun matchExpression() {
+        assertExpression("match 3 { 3: \"three\", 5: \"five\", else: \"dunno\" }", "three")
+        assertExpression("match 5 { 3: \"three\", 5: \"five\", else: \"dunno\" }", "five")
+        assertExpression("match 7 { 3: \"three\", 5: \"five\", else: \"dunno\" }", "dunno")
+    }
+
     private fun assertExpression(code: String, expected: Any) {
         val parser = HappyParser(CommonTokenStream(HappyLexer(CharStreams.fromString(code))))
         val result = interpreter.visitExpression(parser.expression())

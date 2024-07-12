@@ -46,6 +46,7 @@ expression
     | expression '==' expression #equalTo
     | expression '!=' expression #notEqual
     | ifExpression #ifExpr
+    | matchExpression #matchExpr
     | expressionBlock #blockExpr
     | ID '{' (keyExpression ',')* (keyExpression)? '}' #constructor
     | primaryExpression #simpleExpression;
@@ -68,6 +69,12 @@ postfixExpression
 keyExpression: ID ':' expression;
 
 ifExpression: 'if' expression expressionBlock 'else' (expressionBlock | ifExpression);
+
+matchExpression: 'match' expression '{' patternValue* matchElse '}';
+
+patternValue: pattern=expression ':' value=expression ',';
+
+matchElse: 'else' ':' expression;
 
 expressionBlock: '{' (action)* expression '}';
 

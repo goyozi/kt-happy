@@ -164,6 +164,13 @@ class TypeCheckerTest {
         assertEquals(listOf(TypeError("1", "Opt<Integer>", "Boolean")), typeChecker.typeErrors)
     }
 
+    @Test
+    fun matchExpression() {
+        assertType("match 3 { 3: \"three\", 5: \"five\", else: \"dunno\" }", "String")
+        assertType("match 5 { 3: \"three\", 5: 5, else: \"dunno\" }", "String|Integer")
+        assertType("match 7 { 3: \"three\", 5: 5, else: 'None }", "String|Integer|'None")
+    }
+
     private fun assertType(code: String, expected: String) {
         val parser = HappyParser(CommonTokenStream(HappyLexer(CharStreams.fromString(code))))
         val result = typeChecker.visitExpression(parser.expression())

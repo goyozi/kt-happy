@@ -213,6 +213,16 @@ class Interpreter : HappyBaseVisitor<Any>() {
         else visitExpressionBlock(ctx.expressionBlock(1))
     }
 
+    override fun visitMatchExpression(ctx: HappyParser.MatchExpressionContext): Any {
+        val matchValue = visitExpression(ctx.expression())
+        for (patternValue in ctx.patternValue()) {
+            if (matchValue == visitExpression(patternValue.pattern)) {
+                return visitExpression(patternValue.value)
+            }
+        }
+        return visitExpression(ctx.matchElse().expression())
+    }
+
     override fun visitExpressionBlock(ctx: HappyParser.ExpressionBlockContext): Any {
         scope.enter()
         ctx.action().forEach(this::visitAction)

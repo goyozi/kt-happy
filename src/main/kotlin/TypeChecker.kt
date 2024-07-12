@@ -222,8 +222,16 @@ class TypeChecker : HappyBaseVisitor<String>() {
         val ifType = visitExpressionBlock(ctx.expressionBlock(0))
         val elseType = if (ctx.ifExpression() != null) visitIfExpression(ctx.ifExpression())
         else visitExpressionBlock(ctx.expressionBlock(1))
-        // if type must match else type
         return if (ifType == elseType) ifType else "$ifType|$elseType"
+    }
+
+    override fun visitMatchExpression(ctx: HappyParser.MatchExpressionContext): String {
+        val resultTypes = mutableSetOf<String>()
+        for (patternValue in ctx.patternValue()) {
+            resultTypes.add(visitExpression(patternValue.value))
+        }
+        resultTypes.add(visitExpression(ctx.matchElse().expression()))
+        return resultTypes.joinToString("|")
     }
 
     override fun visitExpressionBlock(ctx: HappyParser.ExpressionBlockContext): String {
