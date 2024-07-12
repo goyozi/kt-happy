@@ -13,8 +13,15 @@ function add(a: Integer, b: Integer): Integer {
 //add("not a number", "not a number either")
 
 printLine(add(add(a, 100), b + 10))
+printLine(a.add(b).add(b))
 
 printLine("Hello, World!")
+
+function print(s: String): String {
+  printLine(s)
+  s
+}
+"Hello, Happy!".print()
 
 if a > 0 {
   printLine("Math works!")

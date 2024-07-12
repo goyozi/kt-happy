@@ -170,6 +170,21 @@ class Interpreter : HappyBaseVisitor<Any>() {
 
     override fun visitFunctionCall(ctx: HappyParser.FunctionCallContext): Any {
         val function = (ctx.parent as HappyParser.ComplexExpressionContext).expression().accept(this)
+
+        if (function is Pair<*, *>) {
+            val argument = function.first as Any
+            val function = function.second as HappyParser.FunctionContext
+            scope.enter(functionParent.get(function))
+            scope.define(function.arguments[0].name.text, argument)
+            for (i in 1..<function.arguments.size) {
+                scope.define(function.arguments[i].name.text, visitExpression(ctx.expression(i - 1)))
+            }
+            function.action().forEach(this::visitAction)
+            val result = visitExpression(function.expression())
+            scope.leave()
+            return result
+        }
+
         if (function is HappyParser.FunctionContext) {
             scope.enter(functionParent.get(function))
             for (i in 0..<function.arguments.size) {
@@ -197,6 +212,10 @@ class Interpreter : HappyBaseVisitor<Any>() {
 
     override fun visitDotCall(ctx: HappyParser.DotCallContext): Any {
         val target = (ctx.parent as HappyParser.ComplexExpressionContext).expression().accept(this)
+        if (target !is Map<*, *>) {
+            val function = scope.get(ctx.ID().text)
+            return target to function
+        }
         return (target as Map<String, Any>)[ctx.ID().text]
             ?: throw Error("$target does not have a member named ${ctx.ID().text}")
     }

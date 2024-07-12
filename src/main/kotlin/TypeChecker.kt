@@ -191,6 +191,8 @@ class TypeChecker : HappyBaseVisitor<String>() {
         val (argumentsInBrackets, returnType) = functionType.split("->")
         val arguments = argumentsInBrackets.drop(1).dropLast(1).split(",")
 
+        if (arguments == listOf("")) return returnType
+
         for (i in arguments.indices) {
             val declaredArgumentType = arguments[i]
             val actualArgumentType = visitExpression(ctx.expression(i))
@@ -206,10 +208,23 @@ class TypeChecker : HappyBaseVisitor<String>() {
     }
 
     override fun visitDotCall(ctx: HappyParser.DotCallContext): String {
-        // need to keep track of data types
+//        val target = (ctx.parent as HappyParser.ComplexExpressionContext).expression().accept(this)
 //        return (scope.get(ctx.ID(0).text).value as Map<String, Value>)[ctx.ID(1).text]
 //            ?: throw Error("${ctx.ID(0).text} does not have a member named ${ctx.ID(1).text}")
-        return "TODO"
+//        if (target == "Integer") {
+        try {
+            val functionType = scope.get(ctx.ID().text)
+
+            if (!functionType.contains("->")) return "TODO"
+
+            val (argumentsInBrackets, returnType) = functionType.split("->")
+            val arguments = argumentsInBrackets.drop(1).dropLast(1).split(",")
+            return "(" + arguments.drop(1).joinToString(",") + ")" + "->" + returnType
+        } catch (e: IllegalStateException) {
+            return "TODO"
+        }
+//        }
+//        return "TODO"
     }
 
     override fun visitTypeCast(ctx: HappyParser.TypeCastContext): String {
