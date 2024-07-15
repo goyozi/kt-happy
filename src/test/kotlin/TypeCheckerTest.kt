@@ -171,6 +171,64 @@ class TypeCheckerTest {
         assertType("match 7 { 3: \"three\", 5: 5, else: 'None }", "String|Integer|'None")
     }
 
+    @Test
+    fun dataType() {
+        exec("data MyData { name: String, age: Integer }")
+        assertType("MyData { name: \"Luna\", age: 2 }", "MyData")
+        exec("let m = MyData { name: \"Luna\", age: 2 }")
+        assertType("m", "MyData")
+        assertType("m.name", "String")
+        assertType("m.age", "Integer")
+
+        assertType("m.breed", "Unknown")
+        assertEquals(listOf(TypeError("1", "MyData.", "breed")), typeChecker.typeErrors)
+        typeChecker.typeErrors.clear()
+
+        exec("NotMyData { name: \"Luna\", age: \"2\" }")
+        assertEquals(listOf(TypeError("1", "Existing", "Missing")), typeChecker.typeErrors)
+        typeChecker.typeErrors.clear()
+
+        exec("MyData { name: \"Luna\", age: \"2\" }")
+        assertEquals(listOf(TypeError("1", "Integer", "String")), typeChecker.typeErrors)
+        typeChecker.typeErrors.clear()
+
+        exec("MyData { name: \"Luna\" }")
+        assertEquals(listOf(TypeError("1", "MyData.age", "Missing")), typeChecker.typeErrors)
+        typeChecker.typeErrors.clear()
+
+        exec("MyData { name: \"Luna\", age: 2, breed: \"Aussie\" }")
+        assertEquals(listOf(TypeError("1", "MyData.", "breed")), typeChecker.typeErrors)
+        typeChecker.typeErrors.clear()
+
+        exec("data WrongData { oops: DoesNotExist }")
+        assertEquals(listOf(TypeError("1", "Existing", "DoesNotExist")), typeChecker.typeErrors)
+        typeChecker.typeErrors.clear()
+
+        exec("data RightData { my: MyData }")
+        assertEquals(listOf(), typeChecker.typeErrors)
+
+        exec("let r = RightData { my: MyData { name: \"Luna\", age: 2 } }")
+        assertEquals(listOf(), typeChecker.typeErrors)
+
+        assertType("r", "RightData")
+        assertType("r.my", "MyData")
+        assertType("r.my.age", "Integer")
+
+        assertType("r.my.breed", "Unknown")
+        assertEquals(listOf(TypeError("1", "MyData.", "breed")), typeChecker.typeErrors)
+        typeChecker.typeErrors.clear()
+
+        exec("let r = RightData { my: MyData { name: \"Luna\", age: 2, breed: \"Aussie\" } }")
+        assertEquals(listOf(TypeError("1", "MyData.", "breed")), typeChecker.typeErrors)
+        typeChecker.typeErrors.clear()
+
+        exec("function intro(right: RightData): String { right.my.name + \", age \" + right.my.age }")
+        exec("function introDeep(my: MyData): String { my.name + \", age \" + my.age }")
+        assertType("r.intro()", "String")
+        assertType("r.my.introDeep()", "String")
+        assertEquals(listOf(), typeChecker.typeErrors)
+    }
+
     private fun assertType(code: String, expected: String) {
         val parser = HappyParser(CommonTokenStream(HappyLexer(CharStreams.fromString(code))))
         val result = typeChecker.visitExpression(parser.expression())

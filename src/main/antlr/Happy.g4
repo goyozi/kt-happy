@@ -4,7 +4,7 @@ sourceFile: importStatement* (COMMENT | data | enum | function | action)* EOF;
 
 importStatement: 'import' (paths+=ID '.')* '{' (symbols+=ID ',')* (symbols+=ID)? '}';
 
-data: 'data' ID '{' (keyType ',')* (keyType)? '}';
+data: 'data' name=ID '{' (keyType ',')* (keyType)? '}';
 
 enum: 'enum' name=ID ('<' genericType=ID '>')? '{' (values+=typeOrSymbol ',')* (values+=typeOrSymbol)? '}';
 

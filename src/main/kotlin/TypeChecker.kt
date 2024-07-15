@@ -4,6 +4,8 @@ import HappyBaseVisitor
 import HappyParser
 
 class TypeChecker : HappyBaseVisitor<String>() {
+    val builtInTypes = setOf("Integer", "String", "Boolean")
+
     val scope = Scope<String>()
     val declaredTypes = mutableMapOf<String, DeclaredType>()
     val typeErrors = mutableListOf<TypeError>()
@@ -15,6 +17,7 @@ class TypeChecker : HappyBaseVisitor<String>() {
         }
 
         ctx.importStatement().forEach(this::visitImportStatement)
+        ctx.data().forEach(this::visitData)
         ctx.enum_().forEach(this::visitEnum)
         ctx.function().forEach(this::visitFunction)
         ctx.action().forEach(this::visitAction)
@@ -27,8 +30,26 @@ class TypeChecker : HappyBaseVisitor<String>() {
         return "None"
     }
 
+    override fun visitData(ctx: HappyParser.DataContext): String {
+        val declaredType = DeclaredType(
+            ctx.name.text,
+            fields = ctx.keyType().associate { it.name.text to it.type.type.text })
+
+        declaredTypes[ctx.name.text] = declaredType
+
+        for (type in declaredType.fields.values) {
+            if (!builtInTypes.contains(type) && declaredTypes[type] == null) {
+                typeErrors.add(TypeError("${ctx.start.line}", "Existing", type))
+            }
+        }
+
+        return "None"
+    }
+
     override fun visitEnum(ctx: HappyParser.EnumContext): String {
-        declaredTypes[ctx.name.text] = DeclaredType(ctx.name.text, ctx.typeOrSymbol().map { it.text }.filter { it !== ctx.genericType?.text }, ctx.genericType?.text)
+        declaredTypes[ctx.name.text] = DeclaredType(
+            ctx.name.text,
+            ctx.typeOrSymbol().map { it.text }.filter { it !== ctx.genericType?.text })
         return "None"
     }
 
@@ -204,27 +225,47 @@ class TypeChecker : HappyBaseVisitor<String>() {
     }
 
     override fun visitConstructor(ctx: HappyParser.ConstructorContext): String {
+        val dataType = declaredTypes[ctx.ID().text]
+        if (dataType == null) {
+            typeErrors.add(TypeError("${ctx.start.line}", "Existing", "Missing"))
+            return ctx.ID().text
+        }
+        for (field in dataType.fields.keys) {
+            if (ctx.keyExpression().map { it.ID().text }.find { it == field } == null) {
+                typeErrors.add(TypeError("${ctx.start.line}", "${dataType.name}.$field", "Missing"))
+            }
+        }
+        for (keyExpr in ctx.keyExpression()) {
+            val declaredType = dataType.fields[keyExpr.ID().text]
+            if (declaredType == null) {
+                typeErrors.add(TypeError(ctx.start.line.toString(), "${dataType.name}.", keyExpr.ID().text))
+            } else {
+                val actualType = visitExpression(keyExpr.expression())
+                if (incompatibleTypes(declaredType, actualType)) {
+                    typeErrors.add(TypeError("${ctx.start.line}", declaredType, actualType))
+                }
+            }
+        }
         return ctx.ID().text
     }
 
     override fun visitDotCall(ctx: HappyParser.DotCallContext): String {
-//        val target = (ctx.parent as HappyParser.ComplexExpressionContext).expression().accept(this)
-//        return (scope.get(ctx.ID(0).text).value as Map<String, Value>)[ctx.ID(1).text]
-//            ?: throw Error("${ctx.ID(0).text} does not have a member named ${ctx.ID(1).text}")
-//        if (target == "Integer") {
+        val target = (ctx.parent as HappyParser.ComplexExpressionContext).expression().accept(this)
+        val dataType = declaredTypes[target]
+        if (dataType != null) {
+            val fieldType = dataType.fields[ctx.ID().text]
+            if (fieldType != null) return fieldType
+        }
+
         try {
             val functionType = scope.get(ctx.ID().text)
-
-            if (!functionType.contains("->")) return "TODO"
-
             val (argumentsInBrackets, returnType) = functionType.split("->")
             val arguments = argumentsInBrackets.drop(1).dropLast(1).split(",")
             return "(" + arguments.drop(1).joinToString(",") + ")" + "->" + returnType
-        } catch (e: IllegalStateException) {
-            return "TODO"
+        } catch (_: IllegalStateException) {
+            typeErrors.add(TypeError(ctx.start.line.toString(), "$target.", ctx.ID().text))
+            return "Unknown"
         }
-//        }
-//        return "TODO"
     }
 
     override fun visitTypeCast(ctx: HappyParser.TypeCastContext): String {
