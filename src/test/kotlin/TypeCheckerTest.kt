@@ -29,6 +29,9 @@ class TypeCheckerTest {
         assertEquals(listOf(), typeChecker.typeErrors)
         assertType("{ let x: String = 5 x }", "String")
         assertTypeError(IncompatibleType("String", "Integer", "1:2-1:18".loc))
+        exec("let x: UndeclaredType")
+        assertType("x", "UndeclaredType")
+        assertTypeError(UndeclaredType("UndeclaredType", "1:0-1:7".loc))
     }
 
     @Test

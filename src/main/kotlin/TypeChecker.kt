@@ -73,6 +73,13 @@ class TypeChecker : HappyBaseVisitor<String>() {
 
     override fun visitStatement(ctx: HappyParser.StatementContext): String {
         if (ctx.variableDeclaration() != null) {
+            if (ctx.variableDeclaration().typeSpec() != null) {
+                val type = ctx.variableDeclaration().typeSpec().type.text
+                if (!builtInTypes.contains(type) && declaredTypes[type] == null) {
+                    typeErrors.add(UndeclaredType(type, ctx.loc))
+                }
+            }
+
             val expressionType = if (ctx.variableDeclaration().expression() != null) visitExpression(
                 ctx.variableDeclaration().expression()
             ) else null
