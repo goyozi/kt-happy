@@ -39,7 +39,7 @@ class TypeChecker : HappyBaseVisitor<String>() {
 
         for (type in declaredType.fields.values) {
             if (!builtInTypes.contains(type) && declaredTypes[type] == null) {
-                typeErrors.add(TypeError("${ctx.start.line}", "Existing", type))
+                typeErrors.add(UndeclaredType(type, ctx.loc))
             }
         }
 
@@ -65,7 +65,7 @@ class TypeChecker : HappyBaseVisitor<String>() {
         val declaredReturnType = ctx.returnType.text
         val actualReturnType = visitExpression(ctx.expression())
         if (incompatibleTypes(declaredReturnType, actualReturnType)) {
-            typeErrors.add(TypeError("${ctx.start.line}", declaredReturnType, actualReturnType))
+            typeErrors.add(IncompatibleType(declaredReturnType, actualReturnType, ctx.loc))
         }
 
         return "None"
@@ -85,13 +85,13 @@ class TypeChecker : HappyBaseVisitor<String>() {
                     expressionType
                 )
             ) {
-                typeErrors.add(TypeError("${ctx.start.line}", ctx.variableDeclaration().typeSpec().text, expressionType))
+                typeErrors.add(IncompatibleType(ctx.variableDeclaration().typeSpec().text, expressionType, ctx.loc))
             }
         } else if (ctx.variableAssignment() != null) {
             val declaredType = scope.get(ctx.variableAssignment().ID().text)
             val expressionType = visitExpression(ctx.variableAssignment().expression())
             if (incompatibleTypes(declaredType, expressionType)) {
-                typeErrors.add(TypeError("${ctx.start.line}", declaredType, expressionType))
+                typeErrors.add(IncompatibleType(declaredType, expressionType, ctx.loc))
             }
         } else if (ctx.whileLoop() != null) {
             ctx.whileLoop().action().forEach(this::visitAction)
@@ -218,7 +218,7 @@ class TypeChecker : HappyBaseVisitor<String>() {
             val declaredArgumentType = arguments[i]
             val actualArgumentType = visitExpression(ctx.expression(i))
             if (incompatibleTypes(declaredArgumentType, actualArgumentType) && declaredArgumentType != "Any") {
-                typeErrors.add(TypeError("${ctx.start.line}", declaredArgumentType, actualArgumentType))
+                typeErrors.add(IncompatibleType(declaredArgumentType, actualArgumentType, ctx.loc))
             }
         }
         return returnType
@@ -227,22 +227,22 @@ class TypeChecker : HappyBaseVisitor<String>() {
     override fun visitConstructor(ctx: HappyParser.ConstructorContext): String {
         val dataType = declaredTypes[ctx.ID().text]
         if (dataType == null) {
-            typeErrors.add(TypeError("${ctx.start.line}", "Existing", "Missing"))
+            typeErrors.add(UndeclaredType(ctx.ID().text, ctx.loc))
             return ctx.ID().text
         }
         for (field in dataType.fields.keys) {
             if (ctx.keyExpression().map { it.ID().text }.find { it == field } == null) {
-                typeErrors.add(TypeError("${ctx.start.line}", "${dataType.name}.$field", "Missing"))
+                typeErrors.add(UninitializedField(field, dataType.name, ctx.loc))
             }
         }
         for (keyExpr in ctx.keyExpression()) {
             val declaredType = dataType.fields[keyExpr.ID().text]
             if (declaredType == null) {
-                typeErrors.add(TypeError(ctx.start.line.toString(), "${dataType.name}.", keyExpr.ID().text))
+                typeErrors.add(UndeclaredField(keyExpr.ID().text, dataType.name, ctx.loc))
             } else {
                 val actualType = visitExpression(keyExpr.expression())
                 if (incompatibleTypes(declaredType, actualType)) {
-                    typeErrors.add(TypeError("${ctx.start.line}", declaredType, actualType))
+                    typeErrors.add(IncompatibleType(declaredType, actualType, ctx.loc))
                 }
             }
         }
@@ -263,7 +263,7 @@ class TypeChecker : HappyBaseVisitor<String>() {
             val arguments = argumentsInBrackets.drop(1).dropLast(1).split(",")
             return "(" + arguments.drop(1).joinToString(",") + ")" + "->" + returnType
         } catch (_: IllegalStateException) {
-            typeErrors.add(TypeError(ctx.start.line.toString(), "$target.", ctx.ID().text))
+            typeErrors.add(UndeclaredField(ctx.ID().text, target, ctx.loc))
             return "Unknown"
         }
     }

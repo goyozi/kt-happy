@@ -1,5 +1,4 @@
-import io.github.goyozi.kthappy.TypeChecker
-import io.github.goyozi.kthappy.TypeError
+import io.github.goyozi.kthappy.*
 import org.antlr.v4.runtime.CharStreams
 import org.antlr.v4.runtime.CommonTokenStream
 import org.junit.jupiter.api.Test
@@ -29,7 +28,7 @@ class TypeCheckerTest {
         assertType("{ let x = 5 x }", "Integer")
         assertEquals(listOf(), typeChecker.typeErrors)
         assertType("{ let x: String = 5 x }", "String")
-        assertEquals(listOf(TypeError("1", "String", "Integer")), typeChecker.typeErrors)
+        assertTypeError(IncompatibleType("String", "Integer", "1:2-1:18".loc))
     }
 
     @Test
@@ -37,7 +36,7 @@ class TypeCheckerTest {
         assertType("{ let x = 5 x = 10 x }", "Integer")
         assertEquals(listOf(), typeChecker.typeErrors)
         assertType("{ let x = 5 x = \"text\" x }", "Integer")
-        assertEquals(listOf(TypeError("1", "Integer", "String")), typeChecker.typeErrors)
+        assertTypeError(IncompatibleType("Integer", "String", "1:12-1:16".loc))
     }
 
     @Test
@@ -63,7 +62,7 @@ class TypeCheckerTest {
             """
         )
         assertType("add(5, \"not a number\")", "Integer")
-        assertEquals(listOf(TypeError("1", "Integer", "String")), typeChecker.typeErrors)
+        assertTypeError(IncompatibleType("Integer", "String", "1:3-1:21".loc))
     }
 
     @Test
@@ -75,7 +74,7 @@ class TypeCheckerTest {
             }
             """
         )
-        assertEquals(listOf(TypeError("2", "Integer", "String")), typeChecker.typeErrors)
+        assertTypeError(IncompatibleType("Integer", "String", "2:12-4:12".loc))
     }
 
     @Test
@@ -92,7 +91,7 @@ class TypeCheckerTest {
         exec("choice = 5")
         assertEquals(listOf(), typeChecker.typeErrors)
         exec("choice = 'B")
-        assertEquals(listOf(TypeError("1", "Choice", "'B")), typeChecker.typeErrors)
+        assertTypeError(IncompatibleType("Choice", "'B", "1:0-1:9".loc))
     }
 
     @Test
@@ -127,7 +126,10 @@ class TypeCheckerTest {
             }
             """
         )
-        assertEquals(listOf(TypeError("2", "Bunch", "Integer|'One|String")), typeChecker.typeErrors)
+        assertEquals(
+            listOf<TypeError>(IncompatibleType("Bunch", "Integer|'One|String", "2:12-6:12".loc)),
+            typeChecker.typeErrors
+        )
     }
 
     @Test
@@ -161,7 +163,7 @@ class TypeCheckerTest {
         exec("maybe = 'None")
         assertEquals(listOf(), typeChecker.typeErrors)
         exec("maybe = false")
-        assertEquals(listOf(TypeError("1", "Opt<Integer>", "Boolean")), typeChecker.typeErrors)
+        assertTypeError(IncompatibleType("Opt<Integer>", "Boolean", "1:0-1:8".loc))
     }
 
     @Test
@@ -181,28 +183,22 @@ class TypeCheckerTest {
         assertType("m.age", "Integer")
 
         assertType("m.breed", "Unknown")
-        assertEquals(listOf(TypeError("1", "MyData.", "breed")), typeChecker.typeErrors)
-        typeChecker.typeErrors.clear()
+        assertTypeError(UndeclaredField("breed", "MyData", "1:1-1:2".loc))
 
         exec("NotMyData { name: \"Luna\", age: \"2\" }")
-        assertEquals(listOf(TypeError("1", "Existing", "Missing")), typeChecker.typeErrors)
-        typeChecker.typeErrors.clear()
+        assertTypeError(UndeclaredType("NotMyData", "1:0-1:35".loc))
 
         exec("MyData { name: \"Luna\", age: \"2\" }")
-        assertEquals(listOf(TypeError("1", "Integer", "String")), typeChecker.typeErrors)
-        typeChecker.typeErrors.clear()
+        assertTypeError(IncompatibleType("Integer", "String", "1:0-1:32".loc))
 
         exec("MyData { name: \"Luna\" }")
-        assertEquals(listOf(TypeError("1", "MyData.age", "Missing")), typeChecker.typeErrors)
-        typeChecker.typeErrors.clear()
+        assertTypeError(UninitializedField("age", "MyData", "1:0-1:22".loc))
 
         exec("MyData { name: \"Luna\", age: 2, breed: \"Aussie\" }")
-        assertEquals(listOf(TypeError("1", "MyData.", "breed")), typeChecker.typeErrors)
-        typeChecker.typeErrors.clear()
+        assertTypeError(UndeclaredField("breed", "MyData", "1:0-1:47".loc))
 
         exec("data WrongData { oops: DoesNotExist }")
-        assertEquals(listOf(TypeError("1", "Existing", "DoesNotExist")), typeChecker.typeErrors)
-        typeChecker.typeErrors.clear()
+        assertTypeError(UndeclaredType("DoesNotExist", "1:0-1:36".loc))
 
         exec("data RightData { my: MyData }")
         assertEquals(listOf(), typeChecker.typeErrors)
@@ -215,12 +211,10 @@ class TypeCheckerTest {
         assertType("r.my.age", "Integer")
 
         assertType("r.my.breed", "Unknown")
-        assertEquals(listOf(TypeError("1", "MyData.", "breed")), typeChecker.typeErrors)
-        typeChecker.typeErrors.clear()
+        assertTypeError(UndeclaredField("breed", "MyData", "1:4-1:5".loc))
 
         exec("let r = RightData { my: MyData { name: \"Luna\", age: 2, breed: \"Aussie\" } }")
-        assertEquals(listOf(TypeError("1", "MyData.", "breed")), typeChecker.typeErrors)
-        typeChecker.typeErrors.clear()
+        assertTypeError(UndeclaredField("breed", "MyData", "1:24-1:71".loc))
 
         exec("function intro(right: RightData): String { right.my.name + \", age \" + right.my.age }")
         exec("function introDeep(my: MyData): String { my.name + \", age \" + my.age }")
@@ -239,4 +233,17 @@ class TypeCheckerTest {
         val parser = HappyParser(CommonTokenStream(HappyLexer(CharStreams.fromString(code))))
         typeChecker.visitSourceFile(parser.sourceFile())
     }
+
+    private fun assertTypeError(expected: TypeError) {
+        assertEquals(listOf(expected), typeChecker.typeErrors)
+        typeChecker.typeErrors.clear()
+    }
+
+    private val String.loc
+        get(): Loc {
+            val startEnd = this.split("-")
+            val startLinePos = startEnd[0].split(":")
+            val endLinePos = startEnd[1].split(":")
+            return Loc(startLinePos[0].toInt(), startLinePos[1].toInt(), endLinePos[0].toInt(), endLinePos[1].toInt())
+        }
 }
