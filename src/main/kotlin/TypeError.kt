@@ -4,25 +4,25 @@ import org.antlr.v4.runtime.ParserRuleContext
 
 sealed class TypeError
 
-data class IncompatibleType(val expectedType: String, val actualType: String,  val loc: Loc) : TypeError() {
+data class IncompatibleType(val expectedType: Type, val actualType: Type,  val loc: Loc) : TypeError() {
     override fun toString(): String {
         return "Incompatible types at $loc, expected: $expectedType, actual: $actualType"
     }
 }
 
-data class UndeclaredType(val name: String,  val loc: Loc) : TypeError() {
+data class UndeclaredType(val name: String, val loc: Loc) : TypeError() {
     override fun toString(): String {
         return "Undeclared type $name at $loc"
     }
 }
 
-data class UndeclaredField(val field: String, val type: String, val loc: Loc) : TypeError() {
+data class UndeclaredField(val field: String, val type: Type, val loc: Loc) : TypeError() {
     override fun toString(): String {
         return "Undeclared field $field of type $type at $loc"
     }
 }
 
-data class UninitializedField(val field: String, val type: String, val loc: Loc) : TypeError() {
+data class UninitializedField(val field: String, val type: Type, val loc: Loc) : TypeError() {
     override fun toString(): String {
         return "Uninitialized field $field of type $type at $loc"
     }

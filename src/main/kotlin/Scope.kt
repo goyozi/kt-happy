@@ -31,6 +31,8 @@ class Layer<T>(val parent: Layer<T>? = null) {
     val bindings: MutableMap<String, T> = mutableMapOf()
 
     fun define(id: String, value: T) {
+        // todo: can't do it because my exec implementation is stupid
+//        if (bindings.containsKey(id)) throw IllegalStateException("Already defined: $id")
         bindings[id] = value
     }
 

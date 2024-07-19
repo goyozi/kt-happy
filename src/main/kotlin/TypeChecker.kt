@@ -2,17 +2,24 @@ package io.github.goyozi.kthappy
 
 import HappyBaseVisitor
 import HappyParser
+import org.antlr.v4.runtime.tree.TerminalNode
 
-class TypeChecker : HappyBaseVisitor<String>() {
-    val builtInTypes = setOf("Integer", "String", "Boolean")
+class TypeChecker : HappyBaseVisitor<Type>() {
+    val builtInTypes = setOf<Type>(any, integer, string, boolean)
 
-    val scope = Scope<String>()
-    val declaredTypes = mutableMapOf<String, DeclaredType>()
+    val scope = Scope<Type>()
     val typeErrors = mutableListOf<TypeError>()
 
-    override fun visitSourceFile(ctx: HappyParser.SourceFileContext): String {
+    override fun visitSourceFile(ctx: HappyParser.SourceFileContext): Type {
+        for (type in builtInTypes) {
+            scope.define(type.name, type)
+        }
+
         for (function in builtIns) {
-            val functionType = "(" + function.value.arguments.joinToString(",") { it.second } + ")" + "->" + function.value.returnType
+            val functionType = FunctionType(
+                function.key,
+                mapOf(function.value.arguments.map { it.second } to function.value.returnType)
+            )
             scope.define(function.key, functionType)
         }
 
@@ -21,78 +28,117 @@ class TypeChecker : HappyBaseVisitor<String>() {
         ctx.enum_().forEach(this::visitEnum)
         ctx.function().forEach(this::visitFunction)
         ctx.action().forEach(this::visitAction)
-        return "None"
+        ctx.function().forEach(this::visitFunctionBody)
+        return nothing
     }
 
-    override fun visitImportStatement(ctx: HappyParser.ImportStatementContext): String {
+    override fun visitImportStatement(ctx: HappyParser.ImportStatementContext): Type {
         val path = ctx.paths.joinToString("/") { it.text } + ".happy"
-        visitSourceFile(parseSourceFile(path))
-        return "None"
-    }
-
-    override fun visitData(ctx: HappyParser.DataContext): String {
-        val declaredType = DeclaredType(
-            ctx.name.text,
-            fields = ctx.keyType().associate { it.name.text to it.type.type.text })
-
-        declaredTypes[ctx.name.text] = declaredType
-
-        for (type in declaredType.fields.values) {
-            if (!builtInTypes.contains(type) && declaredTypes[type] == null) {
-                typeErrors.add(UndeclaredType(type, ctx.loc))
-            }
+        val currentScope = scope.stack.last()
+        scope.enter(Layer())
+        val sourceFile = parseSourceFile(path)
+        visitSourceFile(sourceFile)
+        sourceFileTrees[path] = sourceFile
+        for (symbol in ctx.symbols) {
+            currentScope.bindings[symbol.text] = scope.get(symbol.text)
         }
-
-        return "None"
+        scope.leave()
+        return nothing
     }
 
-    override fun visitEnum(ctx: HappyParser.EnumContext): String {
-        declaredTypes[ctx.name.text] = DeclaredType(
+    override fun visitData(ctx: HappyParser.DataContext): Type {
+        val declaredType = DataType(
             ctx.name.text,
-            ctx.typeOrSymbol().map { it.text }.filter { it !== ctx.genericType?.text })
-        return "None"
+            ctx.keyType().associate {
+                it.name.text to try {
+                    // todo: generics
+                    scope.get(it.type.type.text)
+                } catch (_: IllegalStateException) {
+                    typeErrors.add(UndeclaredType(it.type.type.text, ctx.loc))
+                    nothing
+                }
+            })
+
+        scope.define(ctx.name.text, declaredType)
+        return nothing
     }
 
-    override fun visitFunction(ctx: HappyParser.FunctionContext): String {
-        val functionType = "(" + ctx.arguments.joinToString(",") { it.type.text } + ")" + "->" + ctx.returnType.text
-        scope.define(ctx.ID().text, functionType)
+    override fun visitEnum(ctx: HappyParser.EnumContext): Type {
+        val typeSet = ctx.typeOrSymbol()
+            .map {
+                if (it.SYMBOL() != null) symbolToType(it.SYMBOL())
+                else if (it.ID().text == ctx.genericType?.text) GenericType(it.ID().text)
+                else idToType(it.ID())
+            }
+            .toSet()
+
+        scope.define(ctx.name.text, EnumType(ctx.name.text, typeSet))
+        return nothing
+    }
+
+    override fun visitFunction(ctx: HappyParser.FunctionContext): Type {
+        val argumentsToVariant =
+            ctx.arguments.map { typeSpecToType(it.typeSpec()) } to typeSpecToType(ctx.returnType)
+        argumentTypes.put(ctx, argumentsToVariant.first)
+        try {
+            val existingFunction = scope.get(ctx.ID().text) as FunctionType // todo: might not be the case
+            val newFunction = FunctionType(existingFunction.name, existingFunction.variants + mapOf(argumentsToVariant))
+            scope.assign(ctx.ID().text, newFunction)
+        } catch (_: IllegalStateException) {
+            val functionType = FunctionType(
+                ctx.ID().text,
+                // todo: test with return being generic type
+                mapOf(argumentsToVariant)
+            )
+            scope.define(ctx.ID().text, functionType)
+        }
+        return nothing
+    }
+
+    private fun visitFunctionBody(ctx: HappyParser.FunctionContext) {
         scope.enter()
 
         for (i in 0..<ctx.arguments.size) {
-            scope.define(ctx.arguments[i].name.text, ctx.arguments[i].type.text)
+            // todo: test with arguments being generic types
+            scope.define(ctx.arguments[i].name.text, typeSpecToType(ctx.arguments[i].type))
         }
 
-        val declaredReturnType = ctx.returnType.text
+        // todo: test that we evaluate the actions
+
+        val declaredReturnType = typeSpecToType(ctx.returnType)
         val actualReturnType = visitExpression(ctx.expression())
         if (incompatibleTypes(declaredReturnType, actualReturnType)) {
             typeErrors.add(IncompatibleType(declaredReturnType, actualReturnType, ctx.loc))
         }
 
-        return "None"
+        scope.leave()
     }
 
-    override fun visitStatement(ctx: HappyParser.StatementContext): String {
+    override fun visitStatement(ctx: HappyParser.StatementContext): Type {
         if (ctx.variableDeclaration() != null) {
             if (ctx.variableDeclaration().typeSpec() != null) {
                 val type = ctx.variableDeclaration().typeSpec().type.text
-                if (!builtInTypes.contains(type) && declaredTypes[type] == null) {
+                try {
+                    scope.get(type)
+                } catch (_: IllegalStateException) {
                     typeErrors.add(UndeclaredType(type, ctx.loc))
+                    scope.define(ctx.variableDeclaration().ID().text, nothing)
+                    return nothing
                 }
             }
 
             val expressionType = if (ctx.variableDeclaration().expression() != null) visitExpression(
                 ctx.variableDeclaration().expression()
             ) else null
-            scope.define(
-                ctx.variableDeclaration().ID().text,
-                ctx.variableDeclaration().typeSpec()?.text ?: expressionType!!
-            )
-            if (ctx.variableDeclaration().typeSpec() != null && expressionType != null && incompatibleTypes(
-                    ctx.variableDeclaration().typeSpec().text,
-                    expressionType
-                )
-            ) {
-                typeErrors.add(IncompatibleType(ctx.variableDeclaration().typeSpec().text, expressionType, ctx.loc))
+
+            val declaredType =
+                if (ctx.variableDeclaration().typeSpec() != null) typeSpecToType(ctx.variableDeclaration().typeSpec())
+                else null
+
+            scope.define(ctx.variableDeclaration().ID().text, declaredType ?: expressionType!!)
+
+            if (declaredType != null && expressionType != null && incompatibleTypes(declaredType, expressionType)) {
+                typeErrors.add(IncompatibleType(declaredType, expressionType, ctx.loc))
             }
         } else if (ctx.variableAssignment() != null) {
             val declaredType = scope.get(ctx.variableAssignment().ID().text)
@@ -107,145 +153,179 @@ class TypeChecker : HappyBaseVisitor<String>() {
         } else {
             throw Error("Unimplemented statement: ${ctx.text}")
         }
-        return "None"
+        return nothing
     }
 
-    override fun visitForLoop(ctx: HappyParser.ForLoopContext): String {
-        scope.define(ctx.ID().text, "Integer")
+    private fun typeSpecToType(typeSpec: HappyParser.TypeSpecContext): Type {
+        var declaredType = typeSpec.type.text.let { scope.get(it) }
+
+        if (declaredType is EnumType && typeSpec.genericType != null) {
+            // todo: should be a union ??
+            declaredType = EnumType(declaredType.name, declaredType.types.map {
+                if (it is GenericType) scope.get(typeSpec.genericType.text)
+                else it
+            }.toSet())
+        }
+        return declaredType
+    }
+
+    override fun visitForLoop(ctx: HappyParser.ForLoopContext): Type {
+        scope.define(ctx.ID().text, integer)
         ctx.action().forEach(this::visitAction)
-        return "None"
+        return nothing
     }
 
-    override fun visitComplexExpression(ctx: HappyParser.ComplexExpressionContext): String {
+    override fun visitComplexExpression(ctx: HappyParser.ComplexExpressionContext): Type {
         return ctx.postfixExpression().accept(this)
     }
 
-    override fun visitExpressionInBrackets(ctx: HappyParser.ExpressionInBracketsContext): String {
+    override fun visitExpressionInBrackets(ctx: HappyParser.ExpressionInBracketsContext): Type {
         return visitExpression(ctx.expression())
     }
 
-    override fun visitTrueLiteral(ctx: HappyParser.TrueLiteralContext): String {
-        return "Boolean"
+    override fun visitTrueLiteral(ctx: HappyParser.TrueLiteralContext): Type {
+        return boolean
     }
 
-    override fun visitFalseLiteral(ctx: HappyParser.FalseLiteralContext): String {
-        return "Boolean"
+    override fun visitFalseLiteral(ctx: HappyParser.FalseLiteralContext): Type {
+        return boolean
     }
 
-    override fun visitIntegerLiteral(ctx: HappyParser.IntegerLiteralContext): String {
-        return "Integer"
+    override fun visitIntegerLiteral(ctx: HappyParser.IntegerLiteralContext): Type {
+        return integer
     }
 
-    override fun visitStringLiteral(ctx: HappyParser.StringLiteralContext): String {
-        return "String"
+    override fun visitStringLiteral(ctx: HappyParser.StringLiteralContext): Type {
+        return string
     }
 
-    override fun visitMultiplication(ctx: HappyParser.MultiplicationContext): String {
+    override fun visitMultiplication(ctx: HappyParser.MultiplicationContext): Type {
         val left = visitExpression(ctx.expression(0))
         val right = visitExpression(ctx.expression(1))
-        return "Integer"
+        return integer
     }
 
-    override fun visitDivision(ctx: HappyParser.DivisionContext): String {
+    override fun visitDivision(ctx: HappyParser.DivisionContext): Type {
         val left = visitExpression(ctx.expression(0))
         val right = visitExpression(ctx.expression(1))
-        return "Integer"
+        return integer
     }
 
-    override fun visitModulus(ctx: HappyParser.ModulusContext): String {
+    override fun visitModulus(ctx: HappyParser.ModulusContext): Type {
         val left = visitExpression(ctx.expression(0))
         val right = visitExpression(ctx.expression(1))
-        return "Integer"
+        return integer
     }
 
-    override fun visitAddition(ctx: HappyParser.AdditionContext): String {
+    override fun visitAddition(ctx: HappyParser.AdditionContext): Type {
         val left = visitExpression(ctx.expression(0))
         val right = visitExpression(ctx.expression(1))
         return left
     }
 
-    override fun visitSubtraction(ctx: HappyParser.SubtractionContext): String {
+    override fun visitSubtraction(ctx: HappyParser.SubtractionContext): Type {
         val left = visitExpression(ctx.expression(0))
         val right = visitExpression(ctx.expression(1))
-        return "Integer"
+        return integer
     }
 
-    override fun visitGreaterThan(ctx: HappyParser.GreaterThanContext): String {
+    override fun visitGreaterThan(ctx: HappyParser.GreaterThanContext): Type {
         val left = visitExpression(ctx.expression(0))
         val right = visitExpression(ctx.expression(1))
-        return "Boolean"
+        return boolean
     }
 
-    override fun visitLessThan(ctx: HappyParser.LessThanContext): String {
+    override fun visitLessThan(ctx: HappyParser.LessThanContext): Type {
         val left = visitExpression(ctx.expression(0))
         val right = visitExpression(ctx.expression(1))
-        return "Boolean"
+        return boolean
     }
 
-    override fun visitGreaterOrEqual(ctx: HappyParser.GreaterOrEqualContext): String {
+    override fun visitGreaterOrEqual(ctx: HappyParser.GreaterOrEqualContext): Type {
         val left = visitExpression(ctx.expression(0))
         val right = visitExpression(ctx.expression(1))
-        return "Boolean"
+        return boolean
     }
 
-    override fun visitLessOrEqual(ctx: HappyParser.LessOrEqualContext): String {
+    override fun visitLessOrEqual(ctx: HappyParser.LessOrEqualContext): Type {
         val left = visitExpression(ctx.expression(0))
         val right = visitExpression(ctx.expression(1))
-        return "Boolean"
+        return boolean
     }
 
-    override fun visitEqualTo(ctx: HappyParser.EqualToContext): String {
+    override fun visitEqualTo(ctx: HappyParser.EqualToContext): Type {
         val left = visitExpression(ctx.expression(0))
         val right = visitExpression(ctx.expression(1))
-        return "Boolean"
+        return boolean
     }
 
-    override fun visitNotEqual(ctx: HappyParser.NotEqualContext): String {
+    override fun visitNotEqual(ctx: HappyParser.NotEqualContext): Type {
         val left = visitExpression(ctx.expression(0))
         val right = visitExpression(ctx.expression(1))
-        return "Boolean"
+        return boolean
     }
 
-    override fun visitIdentifier(ctx: HappyParser.IdentifierContext): String {
-        return scope.get(ctx.ID().text)
+    override fun visitIdentifier(ctx: HappyParser.IdentifierContext): Type {
+        return idToType(ctx.ID())
     }
 
-    override fun visitSymbol(ctx: HappyParser.SymbolContext): String {
-        return ctx.SYMBOL().text
+    private fun idToType(id: TerminalNode) = try {
+        scope.get(id.text)
+    } catch (_: IllegalStateException) {
+        // type error: unknown identifier, also do it without an exception
+        nothing
     }
 
-    override fun visitFunctionCall(ctx: HappyParser.FunctionCallContext): String {
-        val functionType = (ctx.parent as HappyParser.ComplexExpressionContext).expression().accept(this)
-        val (argumentsInBrackets, returnType) = functionType.split("->")
-        val arguments = argumentsInBrackets.drop(1).dropLast(1).split(",")
+    override fun visitSymbol(ctx: HappyParser.SymbolContext): Type {
+        return symbolToType(ctx.SYMBOL())
+    }
 
-        if (arguments == listOf("")) return returnType
+    private fun symbolToType(symbol: TerminalNode) = SymbolType(symbol.text)
 
-        for (i in arguments.indices) {
-            val declaredArgumentType = arguments[i]
-            val actualArgumentType = visitExpression(ctx.expression(i))
-            if (incompatibleTypes(declaredArgumentType, actualArgumentType) && declaredArgumentType != "Any") {
-                typeErrors.add(IncompatibleType(declaredArgumentType, actualArgumentType, ctx.loc))
-            }
+    override fun visitFunctionCall(ctx: HappyParser.FunctionCallContext): Type {
+        val functionType = (ctx.parent as HappyParser.ComplexExpressionContext).expression()
+            .accept(this)
+
+        if (functionType !is FunctionType) {
+            // todo: type error: not a function
+            return nothing
         }
-        return returnType
+
+        if (functionType.variants.size == 1) {
+            val arguments = functionType.variants.keys.single()
+            val returnType = functionType.variants.values.single()
+
+            for (i in arguments.indices) {
+                val declaredArgumentType = arguments[i]
+                val actualArgumentType = visitExpression(ctx.expression(i))
+                if (incompatibleTypes(declaredArgumentType, actualArgumentType) && declaredArgumentType != any) {
+                    typeErrors.add(IncompatibleType(declaredArgumentType, actualArgumentType, ctx.loc))
+                }
+            }
+            return returnType
+        } else {
+            val actualArguments = ctx.expression().map { visitExpression(it) }
+            val returnType = functionType.variants[actualArguments]!! // todo: might fail badly!
+            return returnType
+        }
     }
 
-    override fun visitConstructor(ctx: HappyParser.ConstructorContext): String {
-        val dataType = declaredTypes[ctx.ID().text]
-        if (dataType == null) {
+    override fun visitConstructor(ctx: HappyParser.ConstructorContext): Type {
+        val dataType = try {
+            scope.get(ctx.ID().text) as DataType // todo: we actually have to check this
+        } catch (_: IllegalStateException) {
             typeErrors.add(UndeclaredType(ctx.ID().text, ctx.loc))
-            return ctx.ID().text
+            return DataType(ctx.ID().text, emptyMap())
         }
         for (field in dataType.fields.keys) {
             if (ctx.keyExpression().map { it.ID().text }.find { it == field } == null) {
-                typeErrors.add(UninitializedField(field, dataType.name, ctx.loc))
+                typeErrors.add(UninitializedField(field, dataType, ctx.loc))
             }
         }
         for (keyExpr in ctx.keyExpression()) {
             val declaredType = dataType.fields[keyExpr.ID().text]
             if (declaredType == null) {
-                typeErrors.add(UndeclaredField(keyExpr.ID().text, dataType.name, ctx.loc))
+                typeErrors.add(UndeclaredField(keyExpr.ID().text, dataType, ctx.loc))
             } else {
                 val actualType = visitExpression(keyExpr.expression())
                 if (incompatibleTypes(declaredType, actualType)) {
@@ -253,64 +333,67 @@ class TypeChecker : HappyBaseVisitor<String>() {
                 }
             }
         }
-        return ctx.ID().text
+        return dataType
     }
 
-    override fun visitDotCall(ctx: HappyParser.DotCallContext): String {
-        val target = (ctx.parent as HappyParser.ComplexExpressionContext).expression().accept(this)
-        val dataType = declaredTypes[target]
-        if (dataType != null) {
+    override fun visitDotCall(ctx: HappyParser.DotCallContext): Type {
+        val targetExpression = (ctx.parent as HappyParser.ComplexExpressionContext).expression()
+        val target = targetExpression.accept(this).also { expressionTypes.put(targetExpression, it) }
+        val dataType = scope.get(target.name)
+        if (dataType is DataType) {
             val fieldType = dataType.fields[ctx.ID().text]
             if (fieldType != null) return fieldType
         }
 
         try {
-            val functionType = scope.get(ctx.ID().text)
-            val (argumentsInBrackets, returnType) = functionType.split("->")
-            val arguments = argumentsInBrackets.drop(1).dropLast(1).split(",")
-            return "(" + arguments.drop(1).joinToString(",") + ")" + "->" + returnType
+            val functionType = scope.get(ctx.ID().text) as FunctionType // todo might not cast properly
+            // todo: proper overloading + tests
+            val matchingVariants = functionType.variants.filterKeys { it.getOrNull(0) == target }
+            val arguments = matchingVariants.keys.single()
+            val variant = matchingVariants.values.single()
+            return FunctionType(ctx.ID().text, mapOf(arguments.drop(1) to variant))
         } catch (_: IllegalStateException) {
             typeErrors.add(UndeclaredField(ctx.ID().text, target, ctx.loc))
-            return "Unknown"
+            return nothing
         }
     }
 
-    override fun visitTypeCast(ctx: HappyParser.TypeCastContext): String {
-        return ctx.typeSpec().text
+    override fun visitTypeCast(ctx: HappyParser.TypeCastContext): Type {
+        // todo: test
+        return typeSpecToType(ctx.typeSpec())
     }
 
-    override fun visitIfExpression(ctx: HappyParser.IfExpressionContext): String {
+    override fun visitIfExpression(ctx: HappyParser.IfExpressionContext): Type {
         val conditionMet = visitExpression(ctx.expression())
         // condition met must be boolean
         val ifType = visitExpressionBlock(ctx.expressionBlock(0))
         val elseType = if (ctx.ifExpression() != null) visitIfExpression(ctx.ifExpression())
         else visitExpressionBlock(ctx.expressionBlock(1))
-        return if (ifType == elseType) ifType else "$ifType|$elseType"
+        return union(setOf(ifType, elseType))
     }
 
-    override fun visitMatchExpression(ctx: HappyParser.MatchExpressionContext): String {
-        val resultTypes = mutableSetOf<String>()
+    override fun visitMatchExpression(ctx: HappyParser.MatchExpressionContext): Type {
+        val resultTypes = mutableSetOf<Type>()
         for (patternValue in ctx.patternValue()) {
             resultTypes.add(visitExpression(patternValue.value))
         }
         resultTypes.add(visitExpression(ctx.matchElse().expression()))
-        return resultTypes.joinToString("|")
+        return union(resultTypes)
     }
 
-    override fun visitExpressionBlock(ctx: HappyParser.ExpressionBlockContext): String {
+    override fun visitExpressionBlock(ctx: HappyParser.ExpressionBlockContext): Type {
+        scope.enter()
         ctx.action().forEach(this::visitAction)
-        return visitExpression(ctx.expression())
+        return visitExpression(ctx.expression()).also { scope.leave() }
     }
 
-    fun visitExpression(ctx: HappyParser.ExpressionContext): String {
-        return ctx.accept(this) ?: throw Error("Unsupported expression: ${ctx.text}")
+    fun visitExpression(ctx: HappyParser.ExpressionContext): Type {
+        return ctx.accept(this)
+            ?.also { expressionTypes.put(ctx, it) }
+            ?: throw Error("Unsupported expression: ${ctx.text}")
     }
 
-    private fun incompatibleTypes(declaredType: String, expressionType: String): Boolean {
-        val matchingTypes = declaredType == expressionType
-        val allTypes = expressionType.split("|")
-        val nonGenericType = declaredType.replaceAfter("<", "").replace("<", "")
-        val withinEnum = allTypes.all { (declaredTypes[nonGenericType]?.values?.contains(it) ?: false) || declaredType.endsWith("<$it>") }
-        return !matchingTypes && !withinEnum
+    private fun incompatibleTypes(declaredType: Type, expressionType: Type): Boolean {
+        return !declaredType.assignableFrom(expressionType)
     }
 }

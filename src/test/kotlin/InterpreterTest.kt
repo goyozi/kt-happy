@@ -1,4 +1,5 @@
 import io.github.goyozi.kthappy.Interpreter
+import io.github.goyozi.kthappy.TypeChecker
 import org.antlr.v4.runtime.CharStreams
 import org.antlr.v4.runtime.CommonTokenStream
 import org.junit.jupiter.api.BeforeEach
@@ -7,10 +8,12 @@ import kotlin.test.assertEquals
 
 class InterpreterTest {
 
+    lateinit var typeChecker: TypeChecker
     lateinit var interpreter: Interpreter
 
     @BeforeEach
     fun setUp() {
+        typeChecker = TypeChecker()
         interpreter = Interpreter()
     }
 
@@ -143,6 +146,15 @@ class InterpreterTest {
             """
         )
         assertExpression("add(5, 10)", 15)
+        assertExpression("5.add(10)", 15)
+    }
+
+    @Test
+    fun functionOverloading() {
+        exec("function combine(a: Integer, b: Integer): Integer { a * b }")
+        exec("function combine(a: String, b: String): String { a + b }")
+        assertExpression("combine(\"wo\", \"rd\")", "word")
+        assertExpression("combine(2, 5)", 10)
     }
 
     @Test
@@ -154,12 +166,16 @@ class InterpreterTest {
 
     private fun assertExpression(code: String, expected: Any) {
         val parser = HappyParser(CommonTokenStream(HappyLexer(CharStreams.fromString(code))))
-        val result = interpreter.visitExpression(parser.expression())
+        val expression = parser.expression()
+        typeChecker.visitExpression(expression)
+        val result = interpreter.visitExpression(expression)
         assertEquals(expected, result)
     }
 
     private fun exec(code: String) {
         val parser = HappyParser(CommonTokenStream(HappyLexer(CharStreams.fromString(code))))
-        interpreter.visitSourceFile(parser.sourceFile())
+        val sourceFile = parser.sourceFile()
+        typeChecker.visitSourceFile(sourceFile)
+        interpreter.visitSourceFile(sourceFile)
     }
 }

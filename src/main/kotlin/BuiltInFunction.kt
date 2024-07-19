@@ -6,8 +6,8 @@ val builtIns = mutableMapOf<String, BuiltInFunction>()
 
 class BuiltInFunction(
     val name: String,
-    val arguments: List<Pair<String, String>>,
-    val returnType: String,
+    val arguments: List<Pair<String, Type>>,
+    val returnType: Type,
     val description: String,
     val implementation: (Scope<Any>) -> Any
 ) {
@@ -19,8 +19,8 @@ class BuiltInFunction(
 
 val printLine = BuiltInFunction(
     name = "printLine",
-    arguments = listOf("text" to "Any"),
-    returnType = "None",
+    arguments = listOf("text" to any),
+    returnType = nothing,
     description = "Prints provided text and a newline at the end",
     implementation = { println(it.get("text")) }
 )
@@ -28,7 +28,7 @@ val printLine = BuiltInFunction(
 val readLine = BuiltInFunction(
     name = "readLine",
     arguments = listOf(),
-    returnType = "String",
+    returnType = string,
     description = "Reads a line from standard input and returns the text without newline at the end",
     implementation = { readln() }
 )

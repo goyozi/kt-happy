@@ -1,4 +1,5 @@
 import io.github.goyozi.kthappy.Interpreter
+import io.github.goyozi.kthappy.TypeChecker
 import org.antlr.v4.runtime.CharStreams
 import org.antlr.v4.runtime.CommonTokenStream
 import org.junit.jupiter.api.BeforeEach
@@ -9,10 +10,12 @@ import kotlin.test.assertEquals
 
 class ScopeTest {
 
+    lateinit var typeChecker: TypeChecker
     lateinit var interpreter: Interpreter
 
     @BeforeEach
     fun setUp() {
+        typeChecker = TypeChecker()
         interpreter = Interpreter()
     }
 
@@ -76,8 +79,8 @@ class ScopeTest {
         exec("function leftovers(y: Integer): Integer { let z = y + 5 z }")
         assertThrows<IllegalStateException> { exec("leftovers(x) y") }
         assertThrows<IllegalStateException> { exec("leftovers(x) z") }
-        exec("function crossover(): Integer { let invisible = 5 wrong() }")
         exec("function wrong(): Integer { invisible }")
+        exec("function crossover(): Integer { let invisible = 5 wrong() }")
         assertThrows<IllegalStateException> { exec("crossover()") }
     }
 
@@ -125,12 +128,16 @@ class ScopeTest {
 
     private fun exec(code: String) {
         val parser = HappyParser(CommonTokenStream(HappyLexer(CharStreams.fromString(code))))
-        interpreter.visitSourceFile(parser.sourceFile())
+        val sourceFile = parser.sourceFile()
+        typeChecker.visitSourceFile(sourceFile)
+        interpreter.visitSourceFile(sourceFile)
     }
 
     private fun assertExpression(code: String, expected: Any) {
         val parser = HappyParser(CommonTokenStream(HappyLexer(CharStreams.fromString(code))))
-        val result = interpreter.visitExpression(parser.expression())
+        val expression = parser.expression()
+        typeChecker.visitExpression(expression)
+        val result = interpreter.visitExpression(expression)
         assertEquals(expected, result)
     }
 }

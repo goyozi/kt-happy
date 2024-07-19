@@ -105,3 +105,8 @@ let matched = match 5 {
   else: "math is broken"
 }
 printLine(matched)
+
+function add(s: String, ss: String): String {
+  "string sum: " + s + ss
+}
+printLine(add("hello, ", "world"))
