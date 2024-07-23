@@ -3,8 +3,7 @@ package io.github.goyozi.kthappy
 sealed interface Type {
     val name: String
 
-    // todo: any handling
-    fun assignableFrom(other: Type, scope: Scope<*>? = null) = this == other
+    fun assignableFrom(other: Type, scope: Scope<*>? = null) = this == any || this == other
 }
 
 data class BuiltInType(override val name: String) : Type
@@ -13,13 +12,14 @@ data class DataType(override val name: String, val fields: Map<String, Type>) : 
 
 data class EnumType(override val name: String, val types: Set<Type>) : Type {
     override fun assignableFrom(other: Type, scope: Scope<*>?) =
-        if (other is EnumType) types.containsAll(other.types) else types.contains(other)
+        super.assignableFrom(other, scope)
+                || if (other is EnumType) types.containsAll(other.types) else types.contains(other)
 }
 
 data class InterfaceType(override val name: String, val functions: Set<FunctionType>) : Type {
-    override fun assignableFrom(other: Type, scope: Scope<*>?): Boolean {
-        return super.assignableFrom(other, scope) || (scope != null && functions.all { presentIn(it, scope, other) })
-    }
+    override fun assignableFrom(other: Type, scope: Scope<*>?) =
+        super.assignableFrom(other, scope)
+                || (scope != null && functions.all { presentIn(it, scope, other) })
 
     private fun presentIn(function: FunctionType, scope: Scope<*>, targetType: Type): Boolean {
         val scopeFunction = scope.get(function.name)

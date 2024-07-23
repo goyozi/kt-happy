@@ -2,6 +2,7 @@ package io.github.goyozi.kthappy
 
 import HappyBaseVisitor
 import HappyParser
+import org.antlr.v4.runtime.ParserRuleContext
 import org.antlr.v4.runtime.tree.TerminalNode
 
 class TypeChecker : HappyBaseVisitor<Type>() {
@@ -121,9 +122,7 @@ class TypeChecker : HappyBaseVisitor<Type>() {
 
         val declaredReturnType = typeSpecToType(ctx.sig.returnType)
         val actualReturnType = visitExpression(ctx.expression())
-        if (incompatibleTypes(declaredReturnType, actualReturnType)) {
-            typeErrors.add(IncompatibleType(declaredReturnType, actualReturnType, ctx.loc))
-        }
+        checkType(declaredReturnType, actualReturnType, ctx)
 
         scope.leave()
     }
@@ -151,15 +150,13 @@ class TypeChecker : HappyBaseVisitor<Type>() {
 
             scope.define(ctx.variableDeclaration().ID().text, declaredType ?: expressionType!!)
 
-            if (declaredType != null && expressionType != null && incompatibleTypes(declaredType, expressionType)) {
-                typeErrors.add(IncompatibleType(declaredType, expressionType, ctx.loc))
+            if (declaredType != null && expressionType != null) {
+                checkType(declaredType, expressionType, ctx)
             }
         } else if (ctx.variableAssignment() != null) {
             val declaredType = scope.get(ctx.variableAssignment().ID().text)
             val expressionType = visitExpression(ctx.variableAssignment().expression())
-            if (incompatibleTypes(declaredType, expressionType)) {
-                typeErrors.add(IncompatibleType(declaredType, expressionType, ctx.loc))
-            }
+            checkType(declaredType, expressionType, ctx)
         } else if (ctx.whileLoop() != null) {
             ctx.whileLoop().action().forEach(this::visitAction)
         } else if (ctx.forLoop() != null) {
@@ -260,9 +257,7 @@ class TypeChecker : HappyBaseVisitor<Type>() {
             for (i in arguments.indices) {
                 val declaredArgumentType = arguments[i]
                 val actualArgumentType = visitExpression(ctx.expression(i))
-                if (incompatibleTypes(declaredArgumentType, actualArgumentType) && declaredArgumentType != any) {
-                    typeErrors.add(IncompatibleType(declaredArgumentType, actualArgumentType, ctx.loc))
-                }
+                checkType(declaredArgumentType, actualArgumentType, ctx)
             }
             return returnType
         } else {
@@ -290,9 +285,7 @@ class TypeChecker : HappyBaseVisitor<Type>() {
                 typeErrors.add(UndeclaredField(keyExpr.ID().text, dataType, ctx.loc))
             } else {
                 val actualType = visitExpression(keyExpr.expression())
-                if (incompatibleTypes(declaredType, actualType)) {
-                    typeErrors.add(IncompatibleType(declaredType, actualType, ctx.loc))
-                }
+                checkType(declaredType, actualType, ctx)
             }
         }
         return dataType
@@ -357,6 +350,12 @@ class TypeChecker : HappyBaseVisitor<Type>() {
         return ctx.accept(this)
             ?.also { expressionTypes.put(ctx, it) }
             ?: throw Error("Unsupported expression: ${ctx.text}")
+    }
+
+    private fun checkType(declaredType: Type, actualType: Type, ctx: ParserRuleContext) {
+        if (incompatibleTypes(declaredType, actualType)) {
+            typeErrors.add(IncompatibleType(declaredType, actualType, ctx.loc))
+        }
     }
 
     private fun incompatibleTypes(declaredType: Type, expressionType: Type): Boolean {
