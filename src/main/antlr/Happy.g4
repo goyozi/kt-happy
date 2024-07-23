@@ -38,17 +38,9 @@ expression
     : expression postfixExpression #complexExpression
     | '!' expression #negation
     | '-' expression #unaryMinus
-    | expression '*' expression #multiplication
-    | expression '/' expression #division
-    | expression '%' expression #modulus
-    | expression '+' expression #addition
-    | expression '-' expression #subtraction
-    | expression '>' expression #greaterThan
-    | expression '<' expression #lessThan
-    | expression '>=' expression #greaterOrEqual
-    | expression '<=' expression #lessOrEqual
-    | expression '==' expression #equalTo
-    | expression '!=' expression #notEqual
+    | expression op=('*'|'/'|'%') expression #multiplicative
+    | expression op=('+'|'-') expression #additive
+    | expression op=('>'|'<'|'>='|'<='|'=='|'!=') expression #comparison
     | ifExpression #ifExpr
     | matchExpression #matchExpr
     | expressionBlock #blockExpr
@@ -57,8 +49,7 @@ expression
 
 primaryExpression
     : '(' expression ')' #expressionInBrackets
-    | 'true' #trueLiteral
-    | 'false' #falseLiteral
+    | ('true'|'false') #booleanLiteral
     | INTEGER_LITERAL #integerLiteral
     | STRING_LITERAL #stringLiteral
     | ID #identifier

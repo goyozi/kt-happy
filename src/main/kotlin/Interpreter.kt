@@ -78,12 +78,8 @@ class Interpreter : HappyBaseVisitor<Any>() {
         return visitExpression(ctx.expression())
     }
 
-    override fun visitTrueLiteral(ctx: HappyParser.TrueLiteralContext): Any {
-        return true
-    }
-
-    override fun visitFalseLiteral(ctx: HappyParser.FalseLiteralContext): Any {
-        return false
+    override fun visitBooleanLiteral(ctx: HappyParser.BooleanLiteralContext): Any {
+        return ctx.text.toBoolean()
     }
 
     override fun visitIntegerLiteral(ctx: HappyParser.IntegerLiteralContext): Any {
@@ -102,71 +98,40 @@ class Interpreter : HappyBaseVisitor<Any>() {
         return -(visitExpression(ctx.expression()) as Int)
     }
 
-    override fun visitMultiplication(ctx: HappyParser.MultiplicationContext): Any {
-        val left = visitExpression(ctx.expression(0))
-        val right = visitExpression(ctx.expression(1))
-        return left as Int * right as Int
+    override fun visitMultiplicative(ctx: HappyParser.MultiplicativeContext): Any {
+        val left = visitExpression(ctx.expression(0)) as Int
+        val right = visitExpression(ctx.expression(1)) as Int
+        return when (ctx.op.text) {
+            "*" -> left * right
+            "/" -> left / right
+            else -> left % right
+        }
     }
 
-    override fun visitDivision(ctx: HappyParser.DivisionContext): Any {
+    override fun visitAdditive(ctx: HappyParser.AdditiveContext): Any {
         val left = visitExpression(ctx.expression(0))
         val right = visitExpression(ctx.expression(1))
-        return left as Int / right as Int
+
+        if (left is String) return left + right
+
+        return when (ctx.op.text) {
+            "+" -> left as Int + right as Int
+            else -> left as Int - right as Int
+        }
     }
 
-    override fun visitModulus(ctx: HappyParser.ModulusContext): Any {
+    override fun visitComparison(ctx: HappyParser.ComparisonContext): Any {
         val left = visitExpression(ctx.expression(0))
         val right = visitExpression(ctx.expression(1))
-        return left as Int % right as Int
-    }
 
-    override fun visitAddition(ctx: HappyParser.AdditionContext): Any {
-        val left = visitExpression(ctx.expression(0))
-        val right = visitExpression(ctx.expression(1))
-        return if (left is Int) left + right as Int
-        else left as String + right.toString()
-    }
-
-    override fun visitSubtraction(ctx: HappyParser.SubtractionContext): Any {
-        val left = visitExpression(ctx.expression(0))
-        val right = visitExpression(ctx.expression(1))
-        return left as Int - right as Int
-    }
-
-    override fun visitGreaterThan(ctx: HappyParser.GreaterThanContext): Any {
-        val left = visitExpression(ctx.expression(0))
-        val right = visitExpression(ctx.expression(1))
-        return left as Int > right as Int
-    }
-
-    override fun visitLessThan(ctx: HappyParser.LessThanContext): Any {
-        val left = visitExpression(ctx.expression(0))
-        val right = visitExpression(ctx.expression(1))
-        return (left as Int) < (right as Int)
-    }
-
-    override fun visitGreaterOrEqual(ctx: HappyParser.GreaterOrEqualContext): Any {
-        val left = visitExpression(ctx.expression(0))
-        val right = visitExpression(ctx.expression(1))
-        return (left as Int) >= (right as Int)
-    }
-
-    override fun visitLessOrEqual(ctx: HappyParser.LessOrEqualContext): Any {
-        val left = visitExpression(ctx.expression(0))
-        val right = visitExpression(ctx.expression(1))
-        return (left as Int) <= (right as Int)
-    }
-
-    override fun visitEqualTo(ctx: HappyParser.EqualToContext): Any {
-        val left = visitExpression(ctx.expression(0))
-        val right = visitExpression(ctx.expression(1))
-        return left == right
-    }
-
-    override fun visitNotEqual(ctx: HappyParser.NotEqualContext): Any {
-        val left = visitExpression(ctx.expression(0))
-        val right = visitExpression(ctx.expression(1))
-        return left != right
+        return when (ctx.op.text) {
+            "==" -> left == right
+            "!=" -> left != right
+            ">" -> left as Int > right as Int
+            "<" -> (left as Int) < right as Int
+            ">=" -> left as Int >= right as Int
+            else -> left as Int <= right as Int
+        }
     }
 
     override fun visitIdentifier(ctx: HappyParser.IdentifierContext): Any {

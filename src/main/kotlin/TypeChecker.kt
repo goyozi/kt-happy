@@ -197,11 +197,7 @@ class TypeChecker : HappyBaseVisitor<Type>() {
         return visitExpression(ctx.expression())
     }
 
-    override fun visitTrueLiteral(ctx: HappyParser.TrueLiteralContext): Type {
-        return boolean
-    }
-
-    override fun visitFalseLiteral(ctx: HappyParser.FalseLiteralContext): Type {
+    override fun visitBooleanLiteral(ctx: HappyParser.BooleanLiteralContext): Type {
         return boolean
     }
 
@@ -213,67 +209,19 @@ class TypeChecker : HappyBaseVisitor<Type>() {
         return string
     }
 
-    override fun visitMultiplication(ctx: HappyParser.MultiplicationContext): Type {
+    override fun visitMultiplicative(ctx: HappyParser.MultiplicativeContext): Type {
         val left = visitExpression(ctx.expression(0))
         val right = visitExpression(ctx.expression(1))
         return integer
     }
 
-    override fun visitDivision(ctx: HappyParser.DivisionContext): Type {
-        val left = visitExpression(ctx.expression(0))
-        val right = visitExpression(ctx.expression(1))
-        return integer
-    }
-
-    override fun visitModulus(ctx: HappyParser.ModulusContext): Type {
-        val left = visitExpression(ctx.expression(0))
-        val right = visitExpression(ctx.expression(1))
-        return integer
-    }
-
-    override fun visitAddition(ctx: HappyParser.AdditionContext): Type {
+    override fun visitAdditive(ctx: HappyParser.AdditiveContext): Type {
         val left = visitExpression(ctx.expression(0))
         val right = visitExpression(ctx.expression(1))
         return left
     }
 
-    override fun visitSubtraction(ctx: HappyParser.SubtractionContext): Type {
-        val left = visitExpression(ctx.expression(0))
-        val right = visitExpression(ctx.expression(1))
-        return integer
-    }
-
-    override fun visitGreaterThan(ctx: HappyParser.GreaterThanContext): Type {
-        val left = visitExpression(ctx.expression(0))
-        val right = visitExpression(ctx.expression(1))
-        return boolean
-    }
-
-    override fun visitLessThan(ctx: HappyParser.LessThanContext): Type {
-        val left = visitExpression(ctx.expression(0))
-        val right = visitExpression(ctx.expression(1))
-        return boolean
-    }
-
-    override fun visitGreaterOrEqual(ctx: HappyParser.GreaterOrEqualContext): Type {
-        val left = visitExpression(ctx.expression(0))
-        val right = visitExpression(ctx.expression(1))
-        return boolean
-    }
-
-    override fun visitLessOrEqual(ctx: HappyParser.LessOrEqualContext): Type {
-        val left = visitExpression(ctx.expression(0))
-        val right = visitExpression(ctx.expression(1))
-        return boolean
-    }
-
-    override fun visitEqualTo(ctx: HappyParser.EqualToContext): Type {
-        val left = visitExpression(ctx.expression(0))
-        val right = visitExpression(ctx.expression(1))
-        return boolean
-    }
-
-    override fun visitNotEqual(ctx: HappyParser.NotEqualContext): Type {
+    override fun visitComparison(ctx: HappyParser.ComparisonContext): Type {
         val left = visitExpression(ctx.expression(0))
         val right = visitExpression(ctx.expression(1))
         return boolean
