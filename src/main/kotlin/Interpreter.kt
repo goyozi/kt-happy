@@ -42,21 +42,20 @@ class Interpreter : HappyBaseVisitor<Any>() {
         return Unit
     }
 
-    override fun visitStatement(ctx: HappyParser.StatementContext): Any {
-        if (ctx.variableDeclaration() != null) {
-            scope.define(ctx.variableDeclaration().ID().text, visitExpression(ctx.variableDeclaration().expression()))
-        } else if (ctx.variableAssignment() != null) {
-            scope.assign(ctx.variableAssignment().ID().text, visitExpression(ctx.variableAssignment().expression()))
-        } else if (ctx.whileLoop() != null) {
-            scope.enter()
-            while (visitExpression(ctx.whileLoop().expression()) == true) ctx.whileLoop().action()
-                .forEach(this::visitAction)
-            scope.leave()
-        } else if (ctx.forLoop() != null) {
-            visitForLoop(ctx.forLoop())
-        } else {
-            throw Error("Unimplemented statement: ${ctx.text}")
-        }
+    override fun visitVariableDeclaration(ctx: HappyParser.VariableDeclarationContext): Any {
+        scope.define(ctx.ID().text, visitExpression(ctx.expression()))
+        return Unit
+    }
+
+    override fun visitVariableAssignment(ctx: HappyParser.VariableAssignmentContext): Any {
+        scope.assign(ctx.ID().text, visitExpression(ctx.expression()))
+        return Unit
+    }
+
+    override fun visitWhileLoop(ctx: HappyParser.WhileLoopContext): Any {
+        scope.enter()
+        while (visitExpression(ctx.expression()) == true) ctx.action().forEach(this::visitAction)
+        scope.leave()
         return Unit
     }
 

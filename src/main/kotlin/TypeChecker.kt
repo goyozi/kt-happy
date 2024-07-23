@@ -127,60 +127,47 @@ class TypeChecker : HappyBaseVisitor<Type>() {
         scope.leave()
     }
 
-    override fun visitStatement(ctx: HappyParser.StatementContext): Type {
-        if (ctx.variableDeclaration() != null) {
-            if (ctx.variableDeclaration().typeSpec() != null) {
-                val type = ctx.variableDeclaration().typeSpec().type.text
-                try {
-                    scope.get(type)
-                } catch (_: IllegalStateException) {
-                    typeErrors.add(UndeclaredType(type, ctx.loc))
-                    scope.define(ctx.variableDeclaration().ID().text, nothing)
-                    return nothing
-                }
+    override fun visitVariableDeclaration(ctx: HappyParser.VariableDeclarationContext): Type {
+        if (ctx.typeSpec() != null) {
+            val type = ctx.typeSpec().type.text
+            try {
+                scope.get(type)
+            } catch (_: IllegalStateException) {
+                typeErrors.add(UndeclaredType(type, ctx.loc))
+                scope.define(ctx.ID().text, nothing)
+                return nothing
             }
+        }
 
-            val expressionType = if (ctx.variableDeclaration().expression() != null) visitExpression(
-                ctx.variableDeclaration().expression()
-            ) else null
+        val expressionType = if (ctx.expression() != null) visitExpression(ctx.expression()) else null
 
-            val declaredType =
-                if (ctx.variableDeclaration().typeSpec() != null) typeSpecToType(ctx.variableDeclaration().typeSpec())
-                else null
+        val declaredType =
+            if (ctx.typeSpec() != null) typeSpecToType(ctx.typeSpec())
+            else null
 
-            scope.define(ctx.variableDeclaration().ID().text, declaredType ?: expressionType!!)
+        scope.define(ctx.ID().text, declaredType ?: expressionType!!)
 
-            if (declaredType != null && expressionType != null) {
-                checkType(declaredType, expressionType, ctx)
-            }
-        } else if (ctx.variableAssignment() != null) {
-            val declaredType = scope.get(ctx.variableAssignment().ID().text)
-            val expressionType = visitExpression(ctx.variableAssignment().expression())
+        if (declaredType != null && expressionType != null) {
             checkType(declaredType, expressionType, ctx)
-        } else if (ctx.whileLoop() != null) {
-            ctx.whileLoop().action().forEach(this::visitAction)
-        } else if (ctx.forLoop() != null) {
-            visitForLoop(ctx.forLoop())
-        } else {
-            throw Error("Unimplemented statement: ${ctx.text}")
         }
         return nothing
     }
 
-    private fun typeSpecToType(typeSpec: HappyParser.TypeSpecContext): Type {
-        var declaredType = typeSpec.type.text.let { scope.get(it) }
+    override fun visitVariableAssignment(ctx: HappyParser.VariableAssignmentContext): Type {
+        val declaredType = scope.get(ctx.ID().text)
+        val expressionType = visitExpression(ctx.expression())
+        checkType(declaredType, expressionType, ctx)
+        return nothing
+    }
 
-        if (declaredType is EnumType && typeSpec.genericType != null) {
-            // todo: should be a union ??
-            declaredType = EnumType(declaredType.name, declaredType.types.map {
-                if (it is GenericType) scope.get(typeSpec.genericType.text)
-                else it
-            }.toSet())
-        }
-        return declaredType
+    override fun visitWhileLoop(ctx: HappyParser.WhileLoopContext): Type {
+        // todo: clearly not testing separate scope
+        ctx.action().forEach(this::visitAction)
+        return nothing
     }
 
     override fun visitForLoop(ctx: HappyParser.ForLoopContext): Type {
+        // todo: clearly not testing separate scope
         scope.define(ctx.ID().text, integer)
         ctx.action().forEach(this::visitAction)
         return nothing
@@ -350,6 +337,19 @@ class TypeChecker : HappyBaseVisitor<Type>() {
         return ctx.accept(this)
             ?.also { expressionTypes.put(ctx, it) }
             ?: throw Error("Unsupported expression: ${ctx.text}")
+    }
+
+    private fun typeSpecToType(typeSpec: HappyParser.TypeSpecContext): Type {
+        var declaredType = typeSpec.type.text.let { scope.get(it) }
+
+        if (declaredType is EnumType && typeSpec.genericType != null) {
+            // todo: should be a union ??
+            declaredType = EnumType(declaredType.name, declaredType.types.map {
+                if (it is GenericType) scope.get(typeSpec.genericType.text)
+                else it
+            }.toSet())
+        }
+        return declaredType
     }
 
     private fun checkType(declaredType: Type, actualType: Type, ctx: ParserRuleContext) {
