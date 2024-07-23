@@ -26,6 +26,7 @@ class TypeChecker : HappyBaseVisitor<Type>() {
         ctx.importStatement().forEach(this::visitImportStatement)
         ctx.data().forEach(this::visitData)
         ctx.enum_().forEach(this::visitEnum)
+        ctx.interface_().forEach(this::visitInterface)
         ctx.function().forEach(this::visitFunction)
         ctx.action().forEach(this::visitAction)
         ctx.function().forEach(this::visitFunctionBody)
@@ -76,21 +77,33 @@ class TypeChecker : HappyBaseVisitor<Type>() {
         return nothing
     }
 
+    override fun visitInterface(ctx: HappyParser.InterfaceContext): Type {
+        val interfaceType = InterfaceType(
+            ctx.name.text,
+            ctx.sigs.map { FunctionType(it.name.text, mapOf(it.arguments.map { typeSpecToType(it.typeSpec()) } to typeSpecToType(it.returnType))) }.toSet()
+        )
+        scope.define(ctx.name.text, interfaceType)
+        interfaceType.functions.forEach { functionType ->
+            scope.define(functionType.name, FunctionType(functionType.name, functionType.variants.mapKeys { listOf(interfaceType) + it.key }))
+        }
+        return nothing
+    }
+
     override fun visitFunction(ctx: HappyParser.FunctionContext): Type {
         val argumentsToVariant =
-            ctx.arguments.map { typeSpecToType(it.typeSpec()) } to typeSpecToType(ctx.returnType)
+            ctx.sig.arguments.map { typeSpecToType(it.typeSpec()) } to typeSpecToType(ctx.sig.returnType)
         argumentTypes.put(ctx, argumentsToVariant.first)
         try {
-            val existingFunction = scope.get(ctx.ID().text) as FunctionType // todo: might not be the case
+            val existingFunction = scope.get(ctx.sig.ID().text) as FunctionType // todo: might not be the case
             val newFunction = FunctionType(existingFunction.name, existingFunction.variants + mapOf(argumentsToVariant))
-            scope.assign(ctx.ID().text, newFunction)
+            scope.assign(ctx.sig.name.text, newFunction)
         } catch (_: IllegalStateException) {
             val functionType = FunctionType(
-                ctx.ID().text,
+                ctx.sig.name.text,
                 // todo: test with return being generic type
                 mapOf(argumentsToVariant)
             )
-            scope.define(ctx.ID().text, functionType)
+            scope.define(ctx.sig.name.text, functionType)
         }
         return nothing
     }
@@ -98,14 +111,15 @@ class TypeChecker : HappyBaseVisitor<Type>() {
     private fun visitFunctionBody(ctx: HappyParser.FunctionContext) {
         scope.enter()
 
-        for (i in 0..<ctx.arguments.size) {
+        for (i in 0..<ctx.sig.arguments.size) {
             // todo: test with arguments being generic types
-            scope.define(ctx.arguments[i].name.text, typeSpecToType(ctx.arguments[i].type))
+            scope.define(ctx.sig.arguments[i].name.text, typeSpecToType(ctx.sig.arguments[i].type))
         }
 
         // todo: test that we evaluate the actions
+        ctx.action().forEach(this::visitAction)
 
-        val declaredReturnType = typeSpecToType(ctx.returnType)
+        val declaredReturnType = typeSpecToType(ctx.sig.returnType)
         val actualReturnType = visitExpression(ctx.expression())
         if (incompatibleTypes(declaredReturnType, actualReturnType)) {
             typeErrors.add(IncompatibleType(declaredReturnType, actualReturnType, ctx.loc))
@@ -346,7 +360,11 @@ class TypeChecker : HappyBaseVisitor<Type>() {
         }
 
         try {
-            val functionType = scope.get(ctx.ID().text) as FunctionType // todo might not cast properly
+            val functionType = scope.get(ctx.ID().text)
+
+            if (functionType !is FunctionType)
+                throw Error("${ctx.ID().text} is not a function: $functionType")
+
             // todo: proper overloading + tests
             val matchingVariants = functionType.variants.filterKeys { it.getOrNull(0) == target }
             val arguments = matchingVariants.keys.single()
@@ -394,6 +412,6 @@ class TypeChecker : HappyBaseVisitor<Type>() {
     }
 
     private fun incompatibleTypes(declaredType: Type, expressionType: Type): Boolean {
-        return !declaredType.assignableFrom(expressionType)
+        return !declaredType.assignableFrom(expressionType, scope)
     }
 }

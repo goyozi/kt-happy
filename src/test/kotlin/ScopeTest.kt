@@ -33,10 +33,12 @@ class ScopeTest {
                 function visible(): Integer { y }
                 function invisible(): String { "can't call me" }
                 function wrong(): Integer { x }
+                function timesFive(z: Integer): Integer { z * 5 }
             """
             )
-            exec("import build.tmp.example.{visible}")
+            exec("import build.tmp.example.{visible, timesFive}")
             assertExpression("visible()", 10)
+            assertExpression("timesFive(x)", 25)
 
             assertThrows<IllegalStateException>("unimported function") { exec("invisible()") }
 

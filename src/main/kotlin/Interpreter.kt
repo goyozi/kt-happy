@@ -29,11 +29,14 @@ class Interpreter : HappyBaseVisitor<Any>() {
 
     override fun visitFunction(ctx: HappyParser.FunctionContext): Any {
         try {
-            val function = scope.get(ctx.name.text) as Function // todo: might blow up
-            val newFunction = Function(ctx.name.text, function.variants + mapOf(argumentTypes.get(ctx) to ctx))
-            scope.assign(ctx.name.text, newFunction)
+            val function = scope.get(ctx.sig.name.text) as Function // todo: might blow up
+            val newFunction = Function(ctx.sig.name.text, function.variants + mapOf(argumentTypes.get(ctx) to ctx))
+            scope.assign(ctx.sig.name.text, newFunction)
         } catch (_: IllegalStateException) {
-            scope.define(ctx.name.text, Function(ctx.name.text, mapOf((argumentTypes.get(ctx) ?: emptyList()) to ctx)))
+            scope.define(
+                ctx.sig.name.text,
+                Function(ctx.sig.name.text, mapOf((argumentTypes.get(ctx) ?: emptyList()) to ctx))
+            )
         }
         functionParent.put(ctx, scope.stack.last())
         return Unit
@@ -179,11 +182,12 @@ class Interpreter : HappyBaseVisitor<Any>() {
 
         if (function is PreAppliedFunction) {
             val callTypes = listOf(function.firstArgumentType) + ctx.expression().map { expressionTypes.get(it) }
-            val impl = function.variants[callTypes]!! // todo: is that true after type checking??
+            val impl = function.variants[callTypes]
+                ?: throw Error("Type checking missed function type check. Function: ${function.name} Args: $callTypes Actual: ${function.variants.keys}")
             scope.enter(functionParent.get(impl))
-            scope.define(impl.arguments[0].name.text, function.firstArgument)
-            for (i in 1..<impl.arguments.size) {
-                scope.define(impl.arguments[i].name.text, visitExpression(ctx.expression(i - 1)))
+            scope.define(impl.sig.arguments[0].name.text, function.firstArgument)
+            for (i in 1..<impl.sig.arguments.size) {
+                scope.define(impl.sig.arguments[i].name.text, visitExpression(ctx.expression(i - 1)))
             }
             impl.action().forEach(this::visitAction)
             val result = visitExpression(impl.expression())
@@ -196,13 +200,15 @@ class Interpreter : HappyBaseVisitor<Any>() {
             val impl = function.variants
                 .filterKeys { it.size == callTypes.size
                         // todo: test with argument being enum type
-                        && callTypes.mapIndexed { i, t -> it[i].assignableFrom(t) }.all { it }
+                        && callTypes.mapIndexed { i, t -> it[i].assignableFrom(t, scope) }.all { it }
                 }
                 .values
-                .single() // todo: is it true after type checking?
+                .singleOrNull()
+                ?: throw Error("Type checking missed function type check. Function: ${function.name} Args: $callTypes Actual: ${function.variants.keys}")
+            val arguments = (0..<impl.sig.arguments.size).map { visitExpression(ctx.expression(it)) }
             scope.enter(functionParent.get(impl))
-            for (i in 0..<impl.arguments.size) {
-                scope.define(impl.arguments[i].name.text, visitExpression(ctx.expression(i)))
+            for (i in 0..<impl.sig.arguments.size) {
+                scope.define(impl.sig.arguments[i].name.text, arguments[i])
             }
             impl.action().forEach(this::visitAction)
             val result = visitExpression(impl.expression())
@@ -221,24 +227,28 @@ class Interpreter : HappyBaseVisitor<Any>() {
     }
 
     override fun visitConstructor(ctx: HappyParser.ConstructorContext): Any {
-        return ctx.keyExpression().associate { it.ID().text to visitExpression(it.expression()) }
+        return DataObject(
+            expressionTypes.get(ctx),
+            ctx.keyExpression().associate { it.ID().text to visitExpression(it.expression()) })
     }
 
     override fun visitDotCall(ctx: HappyParser.DotCallContext): Any {
         val targetExpression = (ctx.parent as HappyParser.ComplexExpressionContext).expression()
         val target = targetExpression.accept(this)
-        if (target !is Map<*, *>) {
-            val function = scope.get(ctx.ID().text) as Function // todo: might not be true
-            val firstArgumentType = expressionTypes.get(targetExpression)
-            return PreAppliedFunction(
-                ctx.ID().text,
-                target,
-                firstArgumentType,
-                function.variants.filter { it.key.getOrNull(0) == firstArgumentType }
-            )
+
+        if (target is DataObject && target.values.containsKey(ctx.ID().text)) {
+            return target.values[ctx.ID().text]!!
         }
-        return (target as Map<String, Any>)[ctx.ID().text]
-            ?: throw Error("$target does not have a member named ${ctx.ID().text}")
+
+        val function = scope.get(ctx.ID().text) as Function // todo: might not be true
+        val firstArgumentType = if (target is DataObject) target.type else expressionTypes.get(targetExpression)
+            ?: throw Error("Unknown expression type: ${targetExpression.text}. Function: $function")
+        return PreAppliedFunction(
+            ctx.ID().text,
+            target,
+            firstArgumentType,
+            function.variants.filter { it.key.getOrNull(0) == firstArgumentType }
+        )
     }
 
     override fun visitTypeCast(ctx: HappyParser.TypeCastContext): Any {

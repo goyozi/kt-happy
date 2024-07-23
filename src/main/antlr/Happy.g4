@@ -1,6 +1,6 @@
 grammar Happy;
 
-sourceFile: importStatement* (COMMENT | data | enum | function | action)* EOF;
+sourceFile: importStatement* (COMMENT | data | enum | interface | function | action)* EOF;
 
 importStatement: 'import' (paths+=ID '.')* '{' (symbols+=ID ',')* (symbols+=ID)? '}';
 
@@ -10,7 +10,11 @@ enum: 'enum' name=ID ('<' genericType=ID '>')? '{' (values+=typeOrSymbol ',')* (
 
 typeOrSymbol: ID | SYMBOL;
 
-function: 'function' name=ID '(' (arguments+=keyType ',')* (arguments+=keyType)? ')' ':' returnType=typeSpec '{' action* expression '}';
+interface: 'interface' name=ID '{' (sigs+=functionSignature)* '}';
+
+function: 'function' sig=functionSignature '{' action* expression '}';
+
+functionSignature: name=ID '(' (arguments+=keyType ',')* (arguments+=keyType)? ')' ':' returnType=typeSpec;
 
 keyType: name=ID ':' type=typeSpec;
 

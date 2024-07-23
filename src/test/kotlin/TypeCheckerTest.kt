@@ -243,6 +243,38 @@ class TypeCheckerTest {
         assertEquals(listOf(), typeChecker.typeErrors)
     }
 
+    @Test
+    fun `interface`() {
+        exec(
+            """
+            interface Animal {
+              speak(): String
+            }
+
+            data Cat {}
+            function speak(c: Cat): String { "meow" }
+
+            data Dog {}
+            function speak(d: Dog): String { "woof" }
+            
+            data Robot {}
+
+            function makeSpeak(a: Animal): Animal {
+              printLine(a.speak())
+              a
+            }
+            """
+        )
+        val animalType = InterfaceType("Animal", setOf(FunctionType("speak", mapOf(listOf<Type>() to string))))
+        assertType("makeSpeak(Cat {})", animalType)
+        assertType("makeSpeak(Dog {})", animalType)
+        assertEquals(listOf(), typeChecker.typeErrors)
+
+        val robotType = DataType("Robot", emptyMap())
+        assertType("makeSpeak(Robot {})", animalType)
+        assertTypeError(IncompatibleType(animalType, robotType, "1:9-1:18".loc))
+    }
+
     private fun assertType(code: String, expected: Type) {
         val parser = HappyParser(CommonTokenStream(HappyLexer(CharStreams.fromString(code))))
         val result = typeChecker.visitExpression(parser.expression())

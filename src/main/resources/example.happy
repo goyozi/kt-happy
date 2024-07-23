@@ -110,3 +110,20 @@ function add(s: String, ss: String): String {
   "string sum: " + s + ss
 }
 printLine(add("hello, ", "world"))
+
+interface Animal {
+  speak(): String
+}
+
+function makeSpeak(a: Animal): String {
+  printLine(a.speak())
+  "done"
+}
+
+function speak(c: Cat): String { "meow" }
+
+data Dog {}
+function speak(d: Dog): String { "woof" }
+
+makeSpeak(tom)
+makeSpeak(Dog {})

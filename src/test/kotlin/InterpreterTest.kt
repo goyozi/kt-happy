@@ -1,5 +1,4 @@
-import io.github.goyozi.kthappy.Interpreter
-import io.github.goyozi.kthappy.TypeChecker
+import io.github.goyozi.kthappy.*
 import org.antlr.v4.runtime.CharStreams
 import org.antlr.v4.runtime.CommonTokenStream
 import org.junit.jupiter.api.BeforeEach
@@ -162,6 +161,31 @@ class InterpreterTest {
         assertExpression("match 3 { 3: \"three\", 5: \"five\", else: \"dunno\" }", "three")
         assertExpression("match 5 { 3: \"three\", 5: \"five\", else: \"dunno\" }", "five")
         assertExpression("match 7 { 3: \"three\", 5: \"five\", else: \"dunno\" }", "dunno")
+    }
+
+    @Test
+    fun `interface`() {
+        exec(
+            """
+            interface Animal {
+              speak(): String
+            }
+
+            data Cat {}
+            function speak(c: Cat): String { "meow" }
+
+            data Dog {}
+            function speak(d: Dog): String { "woof" }
+            
+            data Robot {}
+
+            function makeSpeak(a: Animal): String {
+              a.speak()
+            }
+            """
+        )
+        assertExpression("makeSpeak(Cat {})", "meow")
+        assertExpression("makeSpeak(Dog {})", "woof")
     }
 
     private fun assertExpression(code: String, expected: Any) {
