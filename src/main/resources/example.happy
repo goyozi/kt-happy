@@ -127,3 +127,12 @@ function speak(d: Dog): String { "woof" }
 
 makeSpeak(tom)
 makeSpeak(Dog {})
+
+function printLine(s: String, ss: String): String {
+  printLine("s: " + s)
+  printLine("ss: " + ss)
+  "done"
+}
+
+printLine("overloaded", "built-in")
+"overloaded".printLine("built-in")

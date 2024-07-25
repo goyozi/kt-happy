@@ -18,10 +18,10 @@ class TypeChecker : HappyBaseVisitor<Type>() {
 
         for (function in builtIns) {
             val functionType = FunctionType(
-                function.key,
-                mapOf(function.value.arguments.map { it.second } to function.value.returnType)
+                function.name,
+                mapOf(function.arguments to function.returnType)
             )
-            scope.define(function.key, functionType)
+            scope.define(function.name, functionType)
         }
 
         ctx.importStatement().forEach(this::visitImportStatement)
@@ -81,18 +81,39 @@ class TypeChecker : HappyBaseVisitor<Type>() {
     override fun visitInterface(ctx: HappyParser.InterfaceContext): Type {
         val interfaceType = InterfaceType(
             ctx.name.text,
-            ctx.sigs.map { FunctionType(it.name.text, mapOf(it.arguments.map { typeSpecToType(it.typeSpec()) } to typeSpecToType(it.returnType))) }.toSet()
+            ctx.sigs.map {
+                FunctionType(
+                    it.name.text,
+                    mapOf(it.arguments.map {
+                        DeclaredArgument(
+                            typeSpecToType(it.typeSpec()),
+                            it.name.text
+                        )
+                    } to typeSpecToType(
+                        it.returnType
+                    )))
+            }.toSet()
         )
         scope.define(ctx.name.text, interfaceType)
         interfaceType.functions.forEach { functionType ->
-            scope.define(functionType.name, FunctionType(functionType.name, functionType.variants.mapKeys { listOf(interfaceType) + it.key }))
+            scope.define(
+                functionType.name,
+                FunctionType(
+                    functionType.name,
+                    functionType.variants.mapKeys { listOf(DeclaredArgument(interfaceType, "self")) + it.key })
+            )
         }
         return nothing
     }
 
     override fun visitFunction(ctx: HappyParser.FunctionContext): Type {
         val argumentsToVariant =
-            ctx.sig.arguments.map { typeSpecToType(it.typeSpec()) } to typeSpecToType(ctx.sig.returnType)
+            ctx.sig.arguments.map {
+                DeclaredArgument(
+                    typeSpecToType(it.typeSpec()),
+                    it.name.text
+                )
+            } to typeSpecToType(ctx.sig.returnType)
         argumentTypes.put(ctx, argumentsToVariant.first)
         try {
             val existingFunction = scope.get(ctx.sig.ID().text) as FunctionType // todo: might not be the case
@@ -244,12 +265,12 @@ class TypeChecker : HappyBaseVisitor<Type>() {
             for (i in arguments.indices) {
                 val declaredArgumentType = arguments[i]
                 val actualArgumentType = visitExpression(ctx.expression(i))
-                checkType(declaredArgumentType, actualArgumentType, ctx)
+                checkType(declaredArgumentType.type, actualArgumentType, ctx)
             }
             return returnType
         } else {
             val actualArguments = ctx.expression().map { visitExpression(it) }
-            val returnType = functionType.variants[actualArguments]!! // todo: might fail badly!
+            val returnType = functionType.getVariant(actualArguments, scope).value // todo: might fail badly!
             return returnType
         }
     }
@@ -294,7 +315,7 @@ class TypeChecker : HappyBaseVisitor<Type>() {
                 throw Error("${ctx.ID().text} is not a function: $functionType")
 
             // todo: proper overloading + tests
-            val matchingVariants = functionType.variants.filterKeys { it.getOrNull(0) == target }
+            val matchingVariants = functionType.variants.filterKeys { it.getOrNull(0)?.type == target }
             val arguments = matchingVariants.keys.single()
             val variant = matchingVariants.values.single()
             return FunctionType(ctx.ID().text, mapOf(arguments.drop(1) to variant))

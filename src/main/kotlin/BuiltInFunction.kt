@@ -2,24 +2,28 @@
 
 package io.github.goyozi.kthappy
 
-val builtIns = mutableMapOf<String, BuiltInFunction>()
+val builtIns = mutableListOf<BuiltInFunction>()
 
 class BuiltInFunction(
     val name: String,
-    val arguments: List<Pair<String, Type>>,
+    override val arguments: List<DeclaredArgument>,
     val returnType: Type,
     val description: String,
     val implementation: (Scope<Any>) -> Any
-) {
+) : Function {
 
     init {
-        builtIns[name] = this
+        builtIns.add(this)
+    }
+
+    override fun invoke(interpreter: Interpreter): Any {
+        return implementation(interpreter.scope)
     }
 }
 
 val printLine = BuiltInFunction(
     name = "printLine",
-    arguments = listOf("text" to any),
+    arguments = listOf(DeclaredArgument(any, "text")),
     returnType = nothing,
     description = "Prints provided text and a newline at the end",
     implementation = { println(it.get("text")) }

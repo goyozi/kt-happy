@@ -27,10 +27,10 @@ data class InterfaceType(override val name: String, val functions: Set<FunctionT
         // should the type be an exact match?
         // todo: check other args
         if (scopeFunction is FunctionType)
-            return scopeFunction.variants.any { it.key.getOrNull(0) == targetType }
+            return scopeFunction.variants.any { it.key.getOrNull(0)?.type == targetType }
 
-        if (scopeFunction is Function)
-            return scopeFunction.variants.any { it.key.getOrNull(0) == targetType }
+        if (scopeFunction is OverloadedFunction)
+            return scopeFunction.functions.any { it.arguments.getOrNull(0)?.type == targetType }
 
         return false
     }
@@ -38,7 +38,18 @@ data class InterfaceType(override val name: String, val functions: Set<FunctionT
 
 data class GenericType(override val name: String) : Type
 
-data class FunctionType(override val name: String, val variants: Map<List<Type>, Type>) : Type
+data class FunctionType(override val name: String, val variants: Map<List<DeclaredArgument>, Type>) : Type {
+
+    fun getVariant(argTypes: List<Type>, scope: Scope<Type>) = variants
+        .filterKeys {
+            it.size == argTypes.size
+                    // todo: test with argument being enum type
+                    && argTypes.mapIndexed { i, t -> it[i].type.assignableFrom(t, scope) }.all { it }
+        }
+        .entries
+        .singleOrNull()
+        ?: throw Error("Type checking missed function type check. Function: $name Args: $argTypes Actual: ${variants.keys}")
+}
 
 data class SymbolType(override val name: String) : Type
 
