@@ -29,7 +29,7 @@ class Interpreter : HappyBaseVisitor<Any>() {
     }
 
     override fun visitFunction(ctx: HappyParser.FunctionContext): Any {
-        val impl: Function = CustomFunction(argumentTypes.get(ctx) ?: emptyList(), ctx)
+        val impl = functions.get(ctx)
         defineFunction(ctx.sig.name.text, impl)
         functionParent[impl] = scope.stack.last()
         return Unit

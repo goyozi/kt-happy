@@ -265,7 +265,10 @@ class TypeCheckerTest {
             }
             """
         )
-        val animalType = InterfaceType("Animal", setOf(FunctionType("speak", mapOf(listOf<DeclaredArgument>() to string))))
+        val animalType = InterfaceType(
+            "Animal",
+            setOf(OverloadedFunction("speak", listOf(InterfaceFunction("speak", listOf(), string))))
+        )
         assertType("makeSpeak(Cat {})", animalType)
         assertType("makeSpeak(Dog {})", animalType)
         assertEquals(listOf(), typeChecker.typeErrors)
