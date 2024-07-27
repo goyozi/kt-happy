@@ -20,7 +20,7 @@ data class OverloadedFunction(override val name: String, val functions: List<Fun
 
     fun getVariant(argTypes: List<Type>, scope: Scope<*>) =
         findVariant(argTypes, scope).singleOrNull()
-            ?: throw Error("Type checking missed function type check. Function: $name Args: $argTypes Actual: $functions")
+            ?: throw Error("Type checking missed function type check. Function: $name Args: ${argTypes.map { it.name }} Actual: ${functions.map { it.arguments.map { it.type.name } }}")
 
     fun getStaticVariant(argTypes: List<Type>, scope: Scope<*>) =
         findVariant(argTypes, scope).singleOrNull { it !is InterfaceFunction }

@@ -5,10 +5,11 @@ function test(arg: String): String {
 
 interface Animal {
   speak(): String
+  speak(s: String): String
 }
 
 function makeSpeak(a: Animal): String {
   printLine(speak(a))
-  printLine(a.speak())
+  printLine(a.speak("baby"))
   "done"
 }

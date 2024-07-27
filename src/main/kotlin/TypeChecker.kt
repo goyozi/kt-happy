@@ -88,7 +88,8 @@ class TypeChecker : HappyBaseVisitor<Type>() {
         scope.define(ctx.name.text, interfaceType)
         interfaceTypes.put(ctx, interfaceType)
         interfaceType.completeFunctions().forEach { functionType ->
-            scope.define(functionType.name, functionType)
+            // todo: unhack
+            defineFunction(functionType.name, functionType.functions.single())
         }
         return nothing
     }

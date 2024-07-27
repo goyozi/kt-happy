@@ -32,7 +32,8 @@ class Interpreter : HappyBaseVisitor<Any>() {
     override fun visitInterface(ctx: HappyParser.InterfaceContext): Any {
         val interfaceType = interfaceTypes.get(ctx)
         interfaceType.completeFunctions().forEach { functionType ->
-            scope.define(functionType.name, functionType)
+            // todo: unhack
+            defineFunction(functionType.name, functionType.functions.single())
         }
         return Unit
     }

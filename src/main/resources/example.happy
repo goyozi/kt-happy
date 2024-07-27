@@ -112,9 +112,11 @@ function add(s: String, ss: String): String {
 printLine(add("hello, ", "world"))
 
 function speak(c: Cat): String { "meow" }
+function speak(c: Cat, s: String): String { "meow " + s + " meow" }
 
 data Dog {}
 function speak(d: Dog): String { "woof" }
+function speak(d: Dog, s: String): String { "woof " + s + " woof" }
 
 makeSpeak(tom)
 makeSpeak(Dog {})
