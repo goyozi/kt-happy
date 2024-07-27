@@ -86,6 +86,7 @@ class TypeChecker : HappyBaseVisitor<Type>() {
             }.toSet()
         )
         scope.define(ctx.name.text, interfaceType)
+        interfaceTypes.put(ctx, interfaceType)
         interfaceType.completeFunctions().forEach { functionType ->
             scope.define(functionType.name, functionType)
         }
@@ -256,10 +257,14 @@ class TypeChecker : HappyBaseVisitor<Type>() {
                 val actualArgumentType = arguments[i]
                 checkType(declaredArgumentType, actualArgumentType, ctx)
             }
+
+            argumentTypes.put(ctx, function.arguments.map { it.type })
+
             return returnType
         } else {
-            val returnType = functionType.getVariant(arguments, scope).returnType // todo: might fail badly!
-            return returnType
+            val function = functionType.getVariant(arguments, scope) // todo: might fail badly!
+            argumentTypes.put(ctx, function.arguments.map { it.type })
+            return function.returnType
         }
     }
 

@@ -28,13 +28,13 @@ data class InterfaceType(override val name: String, val functions: Set<Overloade
         return scopeFunction.functions.any { it.arguments.getOrNull(0)?.type == targetType }
     }
 
-    fun completeFunctions() = functions.map { of ->
+    fun completeFunctions(type: Type = this) = functions.map { of ->
         OverloadedFunction(
             of.name,
             of.functions.map { f ->
                 InterfaceFunction(
                     f.name,
-                    listOf(DeclaredArgument(this, "self")) + f.arguments,
+                    listOf(DeclaredArgument(type, "self")) + f.arguments,
                     f.returnType
                 )
             }

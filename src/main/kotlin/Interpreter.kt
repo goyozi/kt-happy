@@ -11,6 +11,7 @@ class Interpreter : HappyBaseVisitor<Any>() {
         builtIns.forEach { defineFunction(it.name, it) }
 
         ctx.importStatement().forEach(this::visitImportStatement)
+        ctx.interface_().forEach(this::visitInterface)
         ctx.function().forEach(this::visitFunction)
         ctx.action().forEach(this::visitAction)
         return Unit
@@ -25,6 +26,14 @@ class Interpreter : HappyBaseVisitor<Any>() {
             currentScope.bindings[symbol.text] = scope.get(symbol.text)
         }
         scope.leave()
+        return Unit
+    }
+
+    override fun visitInterface(ctx: HappyParser.InterfaceContext): Any {
+        val interfaceType = interfaceTypes.get(ctx)
+        interfaceType.completeFunctions().forEach { functionType ->
+            scope.define(functionType.name, functionType)
+        }
         return Unit
     }
 
@@ -145,6 +154,7 @@ class Interpreter : HappyBaseVisitor<Any>() {
     }
 
     override fun visitFunctionCall(ctx: HappyParser.FunctionCallContext): Any {
+//        println("debug: ${ctx.parent.text} | ${scope.stack.last()}")
         var function = (ctx.parent as HappyParser.ComplexExpressionContext).expression().accept(this)
         val arguments = mutableListOf<ArgumentValue>()
 
@@ -157,7 +167,37 @@ class Interpreter : HappyBaseVisitor<Any>() {
             arguments.add(ArgumentValue(expressionTypes.get(it), visitExpression(it)))
         }
 
-        return (function as OverloadedFunction).invoke(arguments, this)
+        val argumentTypes = argumentTypes.get(ctx)
+        for (i in arguments.indices) {
+            val declaredType = argumentTypes[i]
+            val actualType = arguments[i].type
+            val argumentValue = arguments[i].value
+            if (declaredType is InterfaceType && declaredType != actualType) {
+                arguments[i] = ArgumentValue(actualType, toIIO(declaredType, argumentValue))
+            }
+        }
+
+        var variant = (function as OverloadedFunction).getVariant(argumentTypes, scope)
+
+        if (variant is InterfaceFunction) {
+            val receiver = arguments.get(0).value as IIO
+//            println("debug: receiver: $receiver")
+            variant = receiver.getVariant(variant.name, variant.arguments.drop(1).map { it.type }, scope)
+        }
+
+        return variant.invoke(arguments, this)
+    }
+
+    private fun toIIO(argumentType: InterfaceType, argumentValue: Any): IIO {
+        val value = argumentValue as DataObject // for simplicity
+        val boundFunctions = argumentType.completeFunctions(value.type)
+            .asSequence()
+            .flatMap { it.functions }
+            .map { (scope.get(it.name) as OverloadedFunction).getStaticVariant(it.arguments.map { it.type }, scope) }
+            .groupBy { it.name }
+            .map { OverloadedFunction(it.key, it.value) }
+            .toSet()
+        return IIO(value, value.type, boundFunctions)
     }
 
     override fun visitConstructor(ctx: HappyParser.ConstructorContext): Any {
@@ -174,7 +214,7 @@ class Interpreter : HappyBaseVisitor<Any>() {
             return target.values[ctx.ID().text]!!
         }
 
-        val firstArgumentType = if (target is DataObject) target.type else expressionTypes.get(targetExpression)
+        val firstArgumentType = expressionTypes.get(targetExpression)
             ?: throw Error("Unknown expression type: ${targetExpression.text}")
 
         return PreAppliedFunction(ctx.ID().text, ArgumentValue(firstArgumentType, target))

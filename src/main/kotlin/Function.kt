@@ -5,26 +5,34 @@ interface Function {
     val arguments: List<DeclaredArgument>
     val returnType: Type
 
+    fun invoke(arguments: List<ArgumentValue>, interpreter: Interpreter): Any {
+        interpreter.scope.enter(interpreter.functionParent[this] ?: Layer())
+        this.arguments.forEachIndexed { i, at -> interpreter.scope.define(at.name, arguments[i].value) }
+        val result = invoke(interpreter)
+        interpreter.scope.leave()
+        return result
+    }
+
     fun invoke(interpreter: Interpreter): Any
 }
 
 data class OverloadedFunction(override val name: String, val functions: List<Function>) : Type {
 
-    fun invoke(arguments: List<ArgumentValue>, interpreter: Interpreter): Any {
-        val impl = getVariant(arguments.map { it.type }, interpreter.scope)
-        interpreter.scope.enter(interpreter.functionParent[impl] ?: Layer())
-        impl.arguments.forEachIndexed { i, at -> interpreter.scope.define(at.name, arguments[i].value) }
-        val result = impl.invoke(interpreter)
-        interpreter.scope.leave()
-        return result
-    }
-
     fun getVariant(argTypes: List<Type>, scope: Scope<*>) =
-        functions.singleOrNull {
-            it.arguments.size == argTypes.size
-                    // todo: test with argument being enum type
-                    && argTypes.mapIndexed { i, t -> it.arguments[i].type.assignableFrom(t, scope) }.all { it }
-        } ?: throw Error("Type checking missed function type check. Function: $name Args: $argTypes Actual: $functions")
+        findVariant(argTypes, scope).singleOrNull()
+            ?: throw Error("Type checking missed function type check. Function: $name Args: $argTypes Actual: $functions")
+
+    fun getStaticVariant(argTypes: List<Type>, scope: Scope<*>) =
+        findVariant(argTypes, scope).singleOrNull { it !is InterfaceFunction }
+            ?: throw Error("Type checking missed function type check. Function: $name Args: $argTypes Actual: $functions")
+
+    private fun findVariant(argTypes: List<Type>, scope: Scope<*>) =
+        functions.filter { matchingArguments(it.arguments, argTypes, scope) }
+
+    private fun matchingArguments(expected: List<DeclaredArgument>, actual: List<Type>, scope: Scope<*>) =
+        expected.size == actual.size
+                // todo: test with argument being enum type
+                && List(expected.size) { i -> expected[i].type.assignableFrom(actual[i], scope) }.all { it }
 }
 
 data class PreAppliedFunction(override val name: String, val firstArgument: ArgumentValue): Type
@@ -32,7 +40,7 @@ data class PreAppliedFunction(override val name: String, val firstArgument: Argu
 data class DeclaredArgument(val type: Type, val name: String)
 data class ArgumentValue(val type: Type, val value: Any)
 
-class CustomFunction(
+data class CustomFunction(
     override val arguments: List<DeclaredArgument>,
     override val returnType: Type,
     private val ctx: HappyParser.FunctionContext

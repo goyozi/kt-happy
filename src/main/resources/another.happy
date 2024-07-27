@@ -2,3 +2,13 @@ function test(arg: String): String {
   printLine("it " + arg)
   arg
 }
+
+interface Animal {
+  speak(): String
+}
+
+function makeSpeak(a: Animal): String {
+  printLine(speak(a))
+  printLine(a.speak())
+  "done"
+}

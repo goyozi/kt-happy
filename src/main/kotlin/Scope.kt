@@ -26,7 +26,7 @@ class Scope<T> {
     fun get(id: String) = stack.last().get(id)
 }
 
-class Layer<T>(val parent: Layer<T>? = null) {
+data class Layer<T>(val parent: Layer<T>? = null) {
 
     val bindings: MutableMap<String, T> = mutableMapOf()
 
