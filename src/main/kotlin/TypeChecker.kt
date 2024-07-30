@@ -3,6 +3,7 @@ package io.github.goyozi.kthappy
 import HappyBaseVisitor
 import HappyParser
 import org.antlr.v4.runtime.ParserRuleContext
+import org.antlr.v4.runtime.tree.ParseTree
 import org.antlr.v4.runtime.tree.TerminalNode
 
 class TypeChecker : HappyBaseVisitor<Type>() {
@@ -61,7 +62,7 @@ class TypeChecker : HappyBaseVisitor<Type>() {
             .map {
                 if (it.SYMBOL() != null) symbolToType(it.SYMBOL())
                 else if (it.ID().text == ctx.genericType?.text) GenericType(it.ID().text)
-                else idToType(it.ID())
+                else idToType(it.ID(), ctx)
             }
             .toSet()
 
@@ -74,9 +75,9 @@ class TypeChecker : HappyBaseVisitor<Type>() {
             ctx.name.text,
             ctx.sigs.map {
                 val arguments = it.arguments.map {
-                    DeclaredArgument(
-                        typeSpecToType(it.typeSpec()),
-                        it.name.text
+                    Parameter(
+                        it.name.text,
+                        typeSpecToType(it.typeSpec())
                     )
                 }
                 OverloadedFunction(
@@ -96,7 +97,7 @@ class TypeChecker : HappyBaseVisitor<Type>() {
 
     override fun visitFunction(ctx: HappyParser.FunctionContext): Type {
         val arguments = ctx.sig.arguments.map {
-            DeclaredArgument(typeSpecToType(it.typeSpec()), it.name.text)
+            Parameter(it.name.text, typeSpecToType(it.typeSpec()))
         }
         val function = CustomFunction(arguments, typeSpecToType(ctx.sig.returnType), ctx)
         functions.put(ctx, function)
@@ -167,6 +168,7 @@ class TypeChecker : HappyBaseVisitor<Type>() {
 
     override fun visitWhileLoop(ctx: HappyParser.WhileLoopContext): Type {
         // todo: clearly not testing separate scope
+        visitExpression(ctx.expression())
         ctx.action().forEach(this::visitAction)
         return nothing
     }
@@ -191,6 +193,7 @@ class TypeChecker : HappyBaseVisitor<Type>() {
     }
 
     override fun visitIntegerLiteral(ctx: HappyParser.IntegerLiteralContext): Type {
+        literals.put(ctx, ctx.INTEGER_LITERAL().text.toInt())
         return integer
     }
 
@@ -207,23 +210,41 @@ class TypeChecker : HappyBaseVisitor<Type>() {
     override fun visitAdditive(ctx: HappyParser.AdditiveContext): Type {
         val left = visitExpression(ctx.expression(0))
         val right = visitExpression(ctx.expression(1))
+
+        if (left == string) binaryOps.put(ctx) { a, b -> a as String + b }
+        else binaryOps.put(ctx, when (ctx.op.text) {
+            "+" -> { a, b -> a as Int + b as Int }
+            else -> { a, b -> a as Int - b as Int }
+        })
+
         return left
     }
 
     override fun visitComparison(ctx: HappyParser.ComparisonContext): Type {
         val left = visitExpression(ctx.expression(0))
         val right = visitExpression(ctx.expression(1))
+
+        binaryOps.put(ctx, when (ctx.op.text) {
+            "==" -> { a, b -> a == b }
+            "!=" -> { a, b -> a != b }
+            ">" -> { a, b -> a as Int > b as Int }
+            "<" -> { a, b -> (a as Int) < b as Int }
+            ">=" -> { a, b -> a as Int >= b as Int }
+            else -> { a, b -> a as Int <= b as Int }
+        })
+
         return boolean
     }
 
     override fun visitIdentifier(ctx: HappyParser.IdentifierContext): Type {
-        return idToType(ctx.ID())
+        identifiers.put(ctx, ctx.ID().text)
+        return idToType(ctx.ID(), ctx)
     }
 
-    private fun idToType(id: TerminalNode) = try {
+    private fun idToType(id: TerminalNode, ctx: ParserRuleContext) = try {
         scope.get(id.text)
     } catch (_: IllegalStateException) {
-        // type error: unknown identifier, also do it without an exception
+        typeErrors.add(UnknownIdentifier(id.text, ctx.loc))
         nothing
     }
 
@@ -235,10 +256,10 @@ class TypeChecker : HappyBaseVisitor<Type>() {
 
     override fun visitFunctionCall(ctx: HappyParser.FunctionCallContext): Type {
         var functionType = (ctx.parent as HappyParser.ComplexExpressionContext).expression().accept(this)
-        val arguments = mutableListOf<Type>()
+        val arguments = mutableListOf<Argument>()
 
         if (functionType is PreAppliedFunction) {
-            arguments.add(functionType.firstArgument.type)
+            arguments.add(functionType.firstArgument)
             functionType = scope.get(functionType.name)
         }
 
@@ -247,7 +268,7 @@ class TypeChecker : HappyBaseVisitor<Type>() {
             return nothing
         }
 
-        ctx.expression().map { visitExpression(it) }.forEach(arguments::add)
+        ctx.expression().map { Argument(it, visitExpression(it)) }.forEach(arguments::add)
 
         if (functionType.functions.size == 1) {
             val function = functionType.functions.single()
@@ -256,17 +277,36 @@ class TypeChecker : HappyBaseVisitor<Type>() {
             for (i in function.arguments.indices) {
                 val declaredArgumentType = function.arguments[i].type
                 val actualArgumentType = arguments[i]
-                checkType(declaredArgumentType, actualArgumentType, ctx)
+                checkType(declaredArgumentType, actualArgumentType.type, ctx)
             }
 
-            argumentTypes.put(ctx, function.arguments.map { it.type })
+            populateContext(ctx, function, arguments)
 
             return returnType
         } else {
-            val function = functionType.getVariant(arguments, scope) // todo: might fail badly!
-            argumentTypes.put(ctx, function.arguments.map { it.type })
+            val function = functionType.getVariant(arguments.map { it.type }, scope) // todo: might fail badly!
+            populateContext(ctx, function, arguments)
             return function.returnType
         }
+    }
+
+    private fun populateContext(
+        ctx: HappyParser.FunctionCallContext,
+        function: Function,
+        arguments: MutableList<Argument>
+    ) {
+        argumentTypes.put(ctx, function.arguments.map { it.type })
+
+        for (i in arguments.indices) {
+            val declaredType = function.arguments[i].type
+            val actualType = arguments[i].type
+            if (declaredType is InterfaceType && declaredType != actualType) {
+                iioTypes.put(arguments[i].value as ParseTree, declaredType)
+            }
+        }
+
+        resolvedFunctionCalls.put(ctx, function)
+        resolvedArgumentExpressions.put(ctx, arguments.map { it.value } as List<HappyParser.ExpressionContext>)
     }
 
     override fun visitConstructor(ctx: HappyParser.ConstructorContext): Type {
@@ -309,7 +349,7 @@ class TypeChecker : HappyBaseVisitor<Type>() {
                 throw Error("${ctx.ID().text} is not a function: $functionType")
 
             // todo: proper overloading + tests
-            return PreAppliedFunction(ctx.ID().text, ArgumentValue(target, Unit))
+            return PreAppliedFunction(ctx.ID().text, Argument(targetExpression, target))
         } catch (_: IllegalStateException) {
             typeErrors.add(UndeclaredField(ctx.ID().text, target, ctx.loc))
             return nothing
@@ -331,8 +371,10 @@ class TypeChecker : HappyBaseVisitor<Type>() {
     }
 
     override fun visitMatchExpression(ctx: HappyParser.MatchExpressionContext): Type {
+        visitExpression(ctx.expression())
         val resultTypes = mutableSetOf<Type>()
         for (patternValue in ctx.patternValue()) {
+            visitExpression(patternValue.pattern)
             resultTypes.add(visitExpression(patternValue.value))
         }
         resultTypes.add(visitExpression(ctx.matchElse().expression()))

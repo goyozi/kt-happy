@@ -34,7 +34,7 @@ data class InterfaceType(override val name: String, val functions: Set<Overloade
             of.functions.map { f ->
                 InterfaceFunction(
                     f.name,
-                    listOf(DeclaredArgument(type, "self")) + f.arguments,
+                    listOf(Parameter("self", type)) + f.arguments,
                     f.returnType
                 )
             }
@@ -44,10 +44,22 @@ data class InterfaceType(override val name: String, val functions: Set<Overloade
 
 data class InterfaceFunction(
     override val name: String,
-    override val arguments: List<DeclaredArgument>,
+    override val arguments: List<Parameter>,
     override val returnType: Type
 ) : Function {
+
+    override fun invoke(arguments: Array<Any>, interpreter: Interpreter): Any {
+        interpreter.scope.enter(interpreter.functionParent[this] ?: Layer())
+        this.arguments.forEachIndexed { i, at -> interpreter.scope.define(at.name, arguments[i]) }
+        val resolved = (arguments.get(0) as IIO)
+            .getVariant(name, this.arguments.map { it.type }.drop(1), interpreter.scope)
+        val result = resolved.invoke(interpreter)
+        interpreter.scope.leave()
+        return result
+    }
+
     override fun invoke(interpreter: Interpreter): Any {
+        // a virtual call always delegates to a concrete call
         throw UnsupportedOperationException()
     }
 }

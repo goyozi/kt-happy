@@ -95,7 +95,7 @@ class Interpreter : HappyBaseVisitor<Any>() {
     }
 
     override fun visitIntegerLiteral(ctx: HappyParser.IntegerLiteralContext): Any {
-        return ctx.INTEGER_LITERAL().text.toInt()
+        return literals.get(ctx)
     }
 
     override fun visitStringLiteral(ctx: HappyParser.StringLiteralContext): Any {
@@ -121,33 +121,19 @@ class Interpreter : HappyBaseVisitor<Any>() {
     }
 
     override fun visitAdditive(ctx: HappyParser.AdditiveContext): Any {
-        val left = visitExpression(ctx.expression(0))
-        val right = visitExpression(ctx.expression(1))
-
-        if (left is String) return left + right
-
-        return when (ctx.op.text) {
-            "+" -> left as Int + right as Int
-            else -> left as Int - right as Int
-        }
+        val left = visitExpression(ctx.left)
+        val right = visitExpression(ctx.right)
+        return binaryOps.get(ctx)(left, right)
     }
 
     override fun visitComparison(ctx: HappyParser.ComparisonContext): Any {
-        val left = visitExpression(ctx.expression(0))
-        val right = visitExpression(ctx.expression(1))
-
-        return when (ctx.op.text) {
-            "==" -> left == right
-            "!=" -> left != right
-            ">" -> left as Int > right as Int
-            "<" -> (left as Int) < right as Int
-            ">=" -> left as Int >= right as Int
-            else -> left as Int <= right as Int
-        }
+        val left = visitExpression(ctx.left)
+        val right = visitExpression(ctx.right)
+        return binaryOps.get(ctx)(left, right)
     }
 
     override fun visitIdentifier(ctx: HappyParser.IdentifierContext): Any {
-        return scope.get(ctx.ID().text)
+        return scope.get(identifiers.get(ctx))
     }
 
     override fun visitSymbol(ctx: HappyParser.SymbolContext): String {
@@ -155,38 +141,20 @@ class Interpreter : HappyBaseVisitor<Any>() {
     }
 
     override fun visitFunctionCall(ctx: HappyParser.FunctionCallContext): Any {
-//        println("debug: ${ctx.parent.text} | ${scope.stack.last()}")
-        var function = (ctx.parent as HappyParser.ComplexExpressionContext).expression().accept(this)
-        val arguments = mutableListOf<ArgumentValue>()
+        val argumentExpressions = resolvedArgumentExpressions.get(ctx)
+        val arguments = Array<Any>(argumentExpressions.size) {}
 
-        if (function is PreAppliedFunction) {
-            arguments.add(function.firstArgument)
-            function = scope.get(function.name)
-        }
-
-        for (it in ctx.expression()) {
-            arguments.add(ArgumentValue(expressionTypes.get(it), visitExpression(it)))
-        }
-
-        val argumentTypes = argumentTypes.get(ctx)
-        for (i in arguments.indices) {
-            val declaredType = argumentTypes[i]
-            val actualType = arguments[i].type
-            val argumentValue = arguments[i].value
-            if (declaredType is InterfaceType && declaredType != actualType) {
-                arguments[i] = ArgumentValue(actualType, toIIO(declaredType, argumentValue))
+        for (it in arguments.indices) {
+            val expression = argumentExpressions[it]
+            val iioType = iioTypes.get(expression)
+            if (iioType == null) {
+                arguments[it] = visitExpression(expression)
+            } else {
+                arguments[it] = toIIO(iioType, visitExpression(expression))
             }
         }
 
-        var variant = (function as OverloadedFunction).getVariant(argumentTypes, scope)
-
-        if (variant is InterfaceFunction) {
-            val receiver = arguments.get(0).value as IIO
-//            println("debug: receiver: $receiver")
-            variant = receiver.getVariant(variant.name, variant.arguments.drop(1).map { it.type }, scope)
-        }
-
-        return variant.invoke(arguments, this)
+        return resolvedFunctionCalls.get(ctx).invoke(arguments, this)
     }
 
     private fun toIIO(argumentType: InterfaceType, argumentValue: Any): IIO {
@@ -209,16 +177,8 @@ class Interpreter : HappyBaseVisitor<Any>() {
 
     override fun visitDotCall(ctx: HappyParser.DotCallContext): Any {
         val targetExpression = (ctx.parent as HappyParser.ComplexExpressionContext).expression()
-        val target = targetExpression.accept(this)
-
-        if (target is DataObject && target.values.containsKey(ctx.ID().text)) {
-            return target.values[ctx.ID().text]!!
-        }
-
-        val firstArgumentType = expressionTypes.get(targetExpression)
-            ?: throw Error("Unknown expression type: ${targetExpression.text}")
-
-        return PreAppliedFunction(ctx.ID().text, ArgumentValue(firstArgumentType, target))
+        val target = targetExpression.accept(this) as DataObject
+        return target.values[ctx.ID().text]!! // todo: proper error message
     }
 
     override fun visitTypeCast(ctx: HappyParser.TypeCastContext): Any {
@@ -227,10 +187,10 @@ class Interpreter : HappyBaseVisitor<Any>() {
     }
 
     override fun visitIfExpression(ctx: HappyParser.IfExpressionContext): Any {
-        val conditionMet = visitExpression(ctx.expression())
-        return if (conditionMet as Boolean) visitExpressionBlock(ctx.expressionBlock(0))
-        else if (ctx.ifExpression() != null) visitIfExpression(ctx.ifExpression())
-        else visitExpressionBlock(ctx.expressionBlock(1))
+        val conditionMet = visitExpression(ctx.condition)
+        return if (conditionMet as Boolean) visitExpressionBlock(ctx.ifTrue)
+        else if (ctx.elseIf != null) visitIfExpression(ctx.elseIf)
+        else visitExpressionBlock(ctx.ifFalse)
     }
 
     override fun visitMatchExpression(ctx: HappyParser.MatchExpressionContext): Any {

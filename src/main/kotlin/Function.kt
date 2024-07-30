@@ -2,12 +2,12 @@ package io.github.goyozi.kthappy
 
 interface Function {
     val name: String
-    val arguments: List<DeclaredArgument>
+    val arguments: List<Parameter>
     val returnType: Type
 
-    fun invoke(arguments: List<ArgumentValue>, interpreter: Interpreter): Any {
+    fun invoke(arguments: Array<Any>, interpreter: Interpreter): Any {
         interpreter.scope.enter(interpreter.functionParent[this] ?: Layer())
-        this.arguments.forEachIndexed { i, at -> interpreter.scope.define(at.name, arguments[i].value) }
+        this.arguments.forEachIndexed { i, at -> interpreter.scope.define(at.name, arguments[i]) }
         val result = invoke(interpreter)
         interpreter.scope.leave()
         return result
@@ -29,19 +29,19 @@ data class OverloadedFunction(override val name: String, val functions: List<Fun
     private fun findVariant(argTypes: List<Type>, scope: Scope<*>) =
         functions.filter { matchingArguments(it.arguments, argTypes, scope) }
 
-    private fun matchingArguments(expected: List<DeclaredArgument>, actual: List<Type>, scope: Scope<*>) =
+    private fun matchingArguments(expected: List<Parameter>, actual: List<Type>, scope: Scope<*>) =
         expected.size == actual.size
                 // todo: test with argument being enum type
                 && List(expected.size) { i -> expected[i].type.assignableFrom(actual[i], scope) }.all { it }
 }
 
-data class PreAppliedFunction(override val name: String, val firstArgument: ArgumentValue): Type
+data class PreAppliedFunction(override val name: String, val firstArgument: Argument): Type
 
-data class DeclaredArgument(val type: Type, val name: String)
-data class ArgumentValue(val type: Type, val value: Any)
+data class Parameter(val name: String, val type: Type)
+data class Argument(val value: Any, val type: Type)
 
 data class CustomFunction(
-    override val arguments: List<DeclaredArgument>,
+    override val arguments: List<Parameter>,
     override val returnType: Type,
     private val ctx: HappyParser.FunctionContext
 ) : Function {

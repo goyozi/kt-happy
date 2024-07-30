@@ -56,8 +56,8 @@ class InterpreterTest {
         assertExpression(
             """
             {
-              let x = 1
-              let y = 2
+              let x = 1;
+              let y = 2;
               x + y
             }
             """, 3
@@ -108,8 +108,8 @@ class InterpreterTest {
         assertExpression(
             """
             {
-              let x = 0
-              for i in 1..3 { x = x + i }
+              let x = 0;
+              for i in 1..3 { x = x + i };
               x
             }
             """,
@@ -122,12 +122,12 @@ class InterpreterTest {
         assertExpression(
             """
             {
-              let x = 0
-              let i = 0
+              let x = 0;
+              let i = 0;
               while i < 3 {
                 i = i + 1
                 x = x + i
-              }
+              };
               x
             }
             """,
@@ -146,6 +146,16 @@ class InterpreterTest {
         )
         assertExpression("add(5, 10)", 15)
         assertExpression("5.add(10)", 15)
+
+        exec(
+            """
+            function fib(n: Integer): Integer {
+              if n < 2 { n }
+              else { fib(n - 1) + fib(n - 2) }
+            }
+            """
+        )
+        assertExpression("fib(10)", 55)
     }
 
     @Test

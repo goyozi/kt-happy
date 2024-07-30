@@ -26,9 +26,9 @@ class TypeCheckerTest {
     @Test
     fun letStatement() {
         exec("")
-        assertType("{ let x = 5 x }", integer)
+        assertType("{ let x = 5; x }", integer)
         assertEquals(listOf(), typeChecker.typeErrors)
-        assertType("{ let x: String = 5 x }", string)
+        assertType("{ let x: String = 5; x }", string)
         assertTypeError(IncompatibleType(string, integer, "1:2-1:18".loc))
         exec("let x: UndeclaredType")
         assertType("x", nothing)
@@ -37,10 +37,10 @@ class TypeCheckerTest {
 
     @Test
     fun assignmentStatement() {
-        assertType("{ let x = 5 x = 10 x }", integer)
+        assertType("{ let x = 5; x = 10; x }", integer)
         assertEquals(listOf(), typeChecker.typeErrors)
-        assertType("{ let x = 5 x = \"text\" x }", integer)
-        assertTypeError(IncompatibleType(integer, string, "1:12-1:16".loc))
+        assertType("{ let x = 5; x = \"text\"; x }", integer)
+        assertTypeError(IncompatibleType(integer, string, "1:13-1:17".loc))
     }
 
     @Test
@@ -293,12 +293,4 @@ class TypeCheckerTest {
         assertEquals(listOf(expected), typeChecker.typeErrors)
         typeChecker.typeErrors.clear()
     }
-
-    private val String.loc
-        get(): Loc {
-            val startEnd = this.split("-")
-            val startLinePos = startEnd[0].split(":")
-            val endLinePos = startEnd[1].split(":")
-            return Loc(startLinePos[0].toInt(), startLinePos[1].toInt(), endLinePos[0].toInt(), endLinePos[1].toInt())
-        }
 }

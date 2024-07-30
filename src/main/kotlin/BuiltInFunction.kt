@@ -6,7 +6,7 @@ val builtIns = mutableListOf<BuiltInFunction>()
 
 class BuiltInFunction(
     override val name: String,
-    override val arguments: List<DeclaredArgument>,
+    override val arguments: List<Parameter>,
     override val returnType: Type,
     val implementation: (Scope<Any>) -> Any
 ) : Function {
@@ -22,7 +22,7 @@ class BuiltInFunction(
 
 val printLine = BuiltInFunction(
     name = "printLine",
-    arguments = listOf(DeclaredArgument(any, "text")),
+    arguments = listOf(Parameter("text", any)),
     returnType = nothing,
     implementation = { println(it.get("text")) }
 )

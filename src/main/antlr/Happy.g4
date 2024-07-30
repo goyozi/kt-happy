@@ -38,9 +38,9 @@ expression
     : expression postfixExpression #complexExpression
     | '!' expression #negation
     | '-' expression #unaryMinus
-    | expression op=('*'|'/'|'%') expression #multiplicative
-    | expression op=('+'|'-') expression #additive
-    | expression op=('>'|'<'|'>='|'<='|'=='|'!=') expression #comparison
+    | left=expression op=('*'|'/'|'%') right=expression #multiplicative
+    | left=expression op=('+'|'-') right=expression #additive
+    | left=expression op=('>'|'<'|'>='|'<='|'=='|'!=') right=expression #comparison
     | ifExpression #ifExpr
     | matchExpression #matchExpr
     | expressionBlock #blockExpr
@@ -63,7 +63,7 @@ postfixExpression
 
 keyExpression: ID ':' expression;
 
-ifExpression: 'if' expression expressionBlock 'else' (expressionBlock | ifExpression);
+ifExpression: 'if' condition=expression ifTrue=expressionBlock 'else' (ifFalse=expressionBlock | elseIf=ifExpression);
 
 matchExpression: 'match' expression '{' patternValue* matchElse '}';
 
@@ -71,7 +71,7 @@ patternValue: pattern=expression ':' value=expression ',';
 
 matchElse: 'else' ':' expression;
 
-expressionBlock: '{' (action)* expression '}';
+expressionBlock: '{' (action ';')* expression '}';
 
 typeSpec: type=ID ('<' genericType=ID '>')?;
 

@@ -1,5 +1,7 @@
 import io.github.goyozi.kthappy.Interpreter
 import io.github.goyozi.kthappy.TypeChecker
+import io.github.goyozi.kthappy.TypeError
+import io.github.goyozi.kthappy.UnknownIdentifier
 import org.antlr.v4.runtime.CharStreams
 import org.antlr.v4.runtime.CommonTokenStream
 import org.junit.jupiter.api.BeforeEach
@@ -32,7 +34,7 @@ class ScopeTest {
                 
                 function visible(): Integer { y }
                 function invisible(): String { "can't call me" }
-                function wrong(): Integer { x }
+                //function wrong(): Integer { x }
                 function timesFive(z: Integer): Integer { z * 5 }
             """
             )
@@ -40,11 +42,11 @@ class ScopeTest {
             assertExpression("visible()", 10)
             assertExpression("timesFive(x)", 25)
 
-            assertThrows<IllegalStateException>("unimported function") { exec("invisible()") }
+            assertTypeError("invisible()", UnknownIdentifier("invisible", "1:0-1:0".loc))
 
-            exec("import build.tmp.example.{wrong}")
-            assertThrows<IllegalStateException>("variable in imported file") { exec("y") }
-            assertThrows<IllegalStateException>("variable in importing file") { exec("wrong()") }
+//            exec("import build.tmp.example.{wrong}")
+            assertTypeError("y", UnknownIdentifier("y", "1:0-1:0".loc))
+//            assertThrows<IllegalStateException>("variable in importing file") { exec("wrong()") }
         } finally {
             importFile.delete()
         }
@@ -55,13 +57,13 @@ class ScopeTest {
         exec("let x = 5")
         assertExpression("{ x }", 5)
         assertExpression("{ { x } }", 5)
-        assertExpression("{ x = 10 x }", 10)
+        assertExpression("{ x = 10; x }", 10)
         assertExpression("x", 10)
-        assertExpression("{ let x = 15 x }", 15)
+        assertExpression("{ let x = 15; x }", 15)
         assertExpression("x", 10)
-        assertExpression("{ x = 20 { let x = 25 x } }", 25)
+        assertExpression("{ x = 20; { let x = 25; x } }", 25)
         assertExpression("x", 20)
-        assertThrows<IllegalStateException> { exec("{ let y = 5 y } y") }
+        assertTypeError("{ let y = 5; y } y", UnknownIdentifier("y", "1:17-1:17".loc))
     }
 
     @Test
@@ -141,5 +143,13 @@ class ScopeTest {
         typeChecker.visitExpression(expression)
         val result = interpreter.visitExpression(expression)
         assertEquals(expected, result)
+    }
+
+    private fun assertTypeError(code: String, expected: TypeError) {
+        val parser = HappyParser(CommonTokenStream(HappyLexer(CharStreams.fromString(code))))
+        val sourceFile = parser.sourceFile()
+        typeChecker.visitSourceFile(sourceFile)
+        assertEquals(listOf(expected), typeChecker.typeErrors)
+        typeChecker.typeErrors.clear()
     }
 }

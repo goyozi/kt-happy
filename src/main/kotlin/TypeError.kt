@@ -10,6 +10,12 @@ data class IncompatibleType(val expectedType: Type, val actualType: Type,  val l
     }
 }
 
+data class UnknownIdentifier(val name: String, val loc: Loc) : TypeError() {
+    override fun toString(): String {
+        return "Unknown identifier $name at $loc"
+    }
+}
+
 data class UndeclaredType(val name: String, val loc: Loc) : TypeError() {
     override fun toString(): String {
         return "Undeclared type $name at $loc"

@@ -26,9 +26,9 @@ function print(s: String): String {
 if a > 0 {
   printLine("Math works!")
 } else {
-  printLine("Math")
-  printLine("is")
-  printLine("in")
+  printLine("Math");
+  printLine("is");
+  printLine("in");
   printLine("trouble!")
 }
 
