@@ -1,4 +1,4 @@
-package io.github.goyozi.kthappy
+package happy
 
 data class IIO(val value: Any, val type: Type, val functions: Set<OverloadedFunction>) {
 

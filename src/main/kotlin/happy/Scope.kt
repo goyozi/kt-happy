@@ -1,4 +1,4 @@
-package io.github.goyozi.kthappy
+package happy
 
 class Scope<T> {
     val stack = ArrayDeque<Layer<T>>(listOf(Layer()))

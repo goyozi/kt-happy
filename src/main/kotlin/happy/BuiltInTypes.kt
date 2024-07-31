@@ -1,4 +1,4 @@
-package io.github.goyozi.kthappy
+package happy
 
 val nothing = BuiltInType("Nothing")
 val any = BuiltInType("Any")

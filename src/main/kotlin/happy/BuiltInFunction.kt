@@ -1,6 +1,6 @@
 @file:Suppress("unused")
 
-package io.github.goyozi.kthappy
+package happy
 
 val builtIns = mutableListOf<BuiltInFunction>()
 

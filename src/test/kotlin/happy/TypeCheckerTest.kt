@@ -1,4 +1,7 @@
-import io.github.goyozi.kthappy.*
+package happy
+
+import HappyLexer
+import HappyParser
 import org.antlr.v4.runtime.CharStreams
 import org.antlr.v4.runtime.CommonTokenStream
 import org.junit.jupiter.api.Test

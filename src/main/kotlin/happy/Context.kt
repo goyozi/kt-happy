@@ -1,4 +1,4 @@
-package io.github.goyozi.kthappy
+package happy
 
 import HappyParser
 import org.antlr.v4.runtime.tree.ParseTreeProperty

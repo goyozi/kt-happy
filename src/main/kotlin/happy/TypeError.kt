@@ -1,10 +1,10 @@
-package io.github.goyozi.kthappy
+package happy
 
 import org.antlr.v4.runtime.ParserRuleContext
 
 sealed class TypeError
 
-data class IncompatibleType(val expectedType: Type, val actualType: Type,  val loc: Loc) : TypeError() {
+data class IncompatibleType(val expectedType: Type, val actualType: Type, val loc: Loc) : TypeError() {
     override fun toString(): String {
         return "Incompatible types at $loc, expected: $expectedType, actual: $actualType"
     }

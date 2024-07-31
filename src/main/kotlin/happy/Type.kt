@@ -1,4 +1,4 @@
-package io.github.goyozi.kthappy
+package happy
 
 sealed interface Type {
     val name: String

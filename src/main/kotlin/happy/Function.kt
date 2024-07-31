@@ -1,4 +1,4 @@
-package io.github.goyozi.kthappy
+package happy
 
 interface Function {
     val name: String

@@ -33,6 +33,6 @@ kotlin {
 }
 tasks.jar {
     manifest {
-        attributes("Main-Class" to "io.github.goyozi.kthappy.MainKt")
+        attributes("Main-Class" to "happy.MainKt")
     }
 }

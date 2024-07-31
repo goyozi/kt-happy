@@ -1,4 +1,4 @@
-import io.github.goyozi.kthappy.Loc
+package happy
 
 val String.loc
     get(): Loc {

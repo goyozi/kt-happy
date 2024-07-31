@@ -1,4 +1,4 @@
-package io.github.goyozi.kthappy
+package happy
 
 import HappyBaseVisitor
 import HappyParser
