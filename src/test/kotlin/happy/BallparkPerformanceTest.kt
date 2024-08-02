@@ -36,8 +36,11 @@ class BallparkPerformanceTest {
 
     @Test
     fun happy() {
+        val expression = parseExpression("fib($n)")
+        expression.type()
+
         val start = System.currentTimeMillis()
-        exec("fib($n)")
+        expression.eval()
         val end = System.currentTimeMillis()
         println("happy time: ${end - start}")
     }
