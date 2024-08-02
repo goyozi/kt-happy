@@ -28,7 +28,7 @@ class Scope<T> {
 
 data class Layer<T>(val parent: Layer<T>? = null) {
 
-    val bindings: MutableMap<String, T> = HashMap()
+    val bindings: MutableMap<String, T> = HashMap(32)
 
     fun define(id: String, value: T) {
         // todo: can't do it because my exec implementation is stupid

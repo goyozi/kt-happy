@@ -49,10 +49,6 @@ data class InterfaceFunction(
 ) : Function {
     override lateinit var parentScope: Layer<Any>
 
-    init {
-        println("$name created, args: $arguments, return: ${returnType.name}")
-    }
-
     override fun invoke(arguments: Array<Any>): Any {
         scope.enter(parentScope)
         this.arguments.forEachIndexed { i, at -> scope.define(at.name, arguments[i]) }
