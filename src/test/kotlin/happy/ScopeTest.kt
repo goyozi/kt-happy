@@ -12,13 +12,9 @@ import kotlin.test.assertEquals
 
 class ScopeTest {
 
-    lateinit var typeChecker: TypeChecker
-    lateinit var interpreter: Interpreter
-
     @BeforeEach
     fun setUp() {
-        typeChecker = TypeChecker()
-        interpreter = Interpreter()
+        resetContext()
     }
 
     @Test
@@ -132,24 +128,23 @@ class ScopeTest {
 
     private fun exec(code: String) {
         val parser = HappyParser(CommonTokenStream(HappyLexer(CharStreams.fromString(code))))
-        val sourceFile = parser.sourceFile()
-        typeChecker.visitSourceFile(sourceFile)
-        interpreter.visitSourceFile(sourceFile)
+        val sourceFile = ParseTreeToAst().visitSourceFile(parser.sourceFile())
+        sourceFile.typeCheck()
+        sourceFile.eval()
     }
 
     private fun assertExpression(code: String, expected: Any) {
         val parser = HappyParser(CommonTokenStream(HappyLexer(CharStreams.fromString(code))))
-        val expression = parser.expression()
-        typeChecker.visitExpression(expression)
-        val result = interpreter.visitExpression(expression)
-        assertEquals(expected, result)
+        val expression = ParseTreeToAst().visitExpression(parser.expression())
+        expression.type()
+        assertEquals(expected, expression.eval())
     }
 
     private fun assertTypeError(code: String, expected: TypeError) {
         val parser = HappyParser(CommonTokenStream(HappyLexer(CharStreams.fromString(code))))
-        val sourceFile = parser.sourceFile()
-        typeChecker.visitSourceFile(sourceFile)
-        assertEquals(listOf(expected), typeChecker.typeErrors)
-        typeChecker.typeErrors.clear()
+        val sourceFile = ParseTreeToAst().visitSourceFile(parser.sourceFile())
+        sourceFile.typeCheck()
+        assertEquals(listOf(expected), typeErrors)
+        typeErrors.clear()
     }
 }

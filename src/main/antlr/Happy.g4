@@ -1,14 +1,16 @@
 grammar Happy;
 
-sourceFile: importStatement* (COMMENT | data | enum | interface | function | action)* EOF;
+sourceFile: importStatement* (COMMENT | typeDeclaration | function | action)* EOF;
 
 importStatement: 'import' (paths+=ID '.')* '{' (symbols+=ID ',')* (symbols+=ID)? '}';
+
+typeDeclaration: data | enum | interface;
 
 data: 'data' name=ID '{' (keyType ',')* (keyType)? '}';
 
 enum: 'enum' name=ID ('<' genericType=ID '>')? '{' (values+=typeOrSymbol ',')* (values+=typeOrSymbol)? '}';
 
-typeOrSymbol: ID | SYMBOL;
+typeOrSymbol: typeSpec | symbol;
 
 interface: 'interface' name=ID '{' (sigs+=functionSignature)* '}';
 
@@ -53,8 +55,10 @@ primaryExpression
     | INTEGER_LITERAL #integerLiteral
     | STRING_LITERAL #stringLiteral
     | ID #identifier
-    | SYMBOL #symbol
+    | symbol #symbolLiteral
     ;
+
+symbol: SYMBOL;
 
 postfixExpression
     : '(' expression? (',' expression)* ')' #functionCall

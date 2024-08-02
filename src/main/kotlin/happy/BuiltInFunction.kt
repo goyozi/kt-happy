@@ -10,13 +10,14 @@ class BuiltInFunction(
     override val returnType: Type,
     val implementation: (Scope<Any>) -> Any
 ) : Function {
+    override var parentScope: Layer<Any> = Layer()
 
     init {
         builtIns.add(this)
     }
 
-    override fun invoke(interpreter: Interpreter): Any {
-        return implementation(interpreter.scope)
+    override fun invoke(): Any {
+        return implementation(scope)
     }
 }
 

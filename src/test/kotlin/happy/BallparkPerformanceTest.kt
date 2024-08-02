@@ -2,6 +2,7 @@ package happy
 
 import HappyLexer
 import HappyParser
+import happy.ast.expression.Expression
 import org.antlr.v4.runtime.CharStreams
 import org.antlr.v4.runtime.CommonTokenStream
 import org.junit.jupiter.api.BeforeEach
@@ -13,13 +14,9 @@ private const val n = 20
 
 class BallparkPerformanceTest {
 
-    lateinit var typeChecker: TypeChecker
-    lateinit var interpreter: Interpreter
-
     @BeforeEach
     fun setUp() {
-        typeChecker = TypeChecker()
-        interpreter = Interpreter()
+        resetContext()
 
         exec(
             """
@@ -55,22 +52,20 @@ class BallparkPerformanceTest {
 
     fun fib(n: Int): Int = if (n < 2) n else fib(n - 1) + fib(n - 2)
 
-    private fun parseExpression(code: String): HappyParser.ExpressionContext {
+    private fun parseExpression(code: String): Expression {
         val parser = HappyParser(CommonTokenStream(HappyLexer(CharStreams.fromString(code))))
-        val expression = parser.expression()
-        typeChecker.visitExpression(expression)
-        return expression
+        return ParseTreeToAst().visitExpression(parser.expression())
     }
 
-    private fun assertExpression(expression: HappyParser.ExpressionContext, expected: Any) {
-        val result = interpreter.visitExpression(expression)
-        assertEquals(expected, result)
+    private fun assertExpression(expression: Expression, expected: Any) {
+        expression.type()
+        assertEquals(expected, expression.eval())
     }
 
     private fun exec(code: String) {
         val parser = HappyParser(CommonTokenStream(HappyLexer(CharStreams.fromString(code))))
-        val sourceFile = parser.sourceFile()
-        typeChecker.visitSourceFile(sourceFile)
-        interpreter.visitSourceFile(sourceFile)
+        val sourceFile = ParseTreeToAst().visitSourceFile(parser.sourceFile())
+        sourceFile.typeCheck()
+        sourceFile.eval()
     }
 }

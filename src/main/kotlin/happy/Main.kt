@@ -8,14 +8,14 @@ import java.io.FileInputStream
 
 fun main(args: Array<String>) {
     val sourceFileTree = parseSourceFile(args[0])
+    val sourceFile = ParseTreeToAst().visitSourceFile(sourceFileTree)
 
-    val typeChecker = TypeChecker()
-    typeChecker.visitSourceFile(sourceFileTree)
-    for (typeError in typeChecker.typeErrors) {
+    sourceFile.typeCheck()
+    for (typeError in typeErrors) {
         System.err.println(typeError)
     }
 
-    Interpreter().visitSourceFile(sourceFileTree)
+    sourceFile.eval()
 }
 
 fun parseSourceFile(path: String): HappyParser.SourceFileContext {

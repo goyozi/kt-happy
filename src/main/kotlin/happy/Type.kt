@@ -47,18 +47,23 @@ data class InterfaceFunction(
     override val arguments: List<Parameter>,
     override val returnType: Type
 ) : Function {
+    override lateinit var parentScope: Layer<Any>
 
-    override fun invoke(arguments: Array<Any>, interpreter: Interpreter): Any {
-        interpreter.scope.enter(interpreter.functionParent[this] ?: Layer())
-        this.arguments.forEachIndexed { i, at -> interpreter.scope.define(at.name, arguments[i]) }
+    init {
+        println("$name created, args: $arguments, return: ${returnType.name}")
+    }
+
+    override fun invoke(arguments: Array<Any>): Any {
+        scope.enter(parentScope)
+        this.arguments.forEachIndexed { i, at -> scope.define(at.name, arguments[i]) }
         val resolved = (arguments.get(0) as IIO)
-            .getVariant(name, this.arguments.map { it.type }.drop(1), interpreter.scope)
-        val result = resolved.invoke(interpreter)
-        interpreter.scope.leave()
+            .getVariant(name, this.arguments.map { it.type }.drop(1), scope)
+        val result = resolved.invoke()
+        scope.leave()
         return result
     }
 
-    override fun invoke(interpreter: Interpreter): Any {
+    override fun invoke(): Any {
         // a virtual call always delegates to a concrete call
         throw UnsupportedOperationException()
     }

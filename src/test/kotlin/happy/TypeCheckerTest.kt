@@ -4,11 +4,16 @@ import HappyLexer
 import HappyParser
 import org.antlr.v4.runtime.CharStreams
 import org.antlr.v4.runtime.CommonTokenStream
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 
 class TypeCheckerTest {
-    val typeChecker = TypeChecker()
+
+    @BeforeEach
+    fun setUp() {
+        resetContext()
+    }
 
     @Test
     fun intLiteral() {
@@ -30,7 +35,7 @@ class TypeCheckerTest {
     fun letStatement() {
         exec("")
         assertType("{ let x = 5; x }", integer)
-        assertEquals(listOf(), typeChecker.typeErrors)
+        assertEquals(listOf(), typeErrors)
         assertType("{ let x: String = 5; x }", string)
         assertTypeError(IncompatibleType(string, integer, "1:2-1:18".loc))
         exec("let x: UndeclaredType")
@@ -41,7 +46,7 @@ class TypeCheckerTest {
     @Test
     fun assignmentStatement() {
         assertType("{ let x = 5; x = 10; x }", integer)
-        assertEquals(listOf(), typeChecker.typeErrors)
+        assertEquals(listOf(), typeErrors)
         assertType("{ let x = 5; x = \"text\"; x }", integer)
         assertTypeError(IncompatibleType(integer, string, "1:13-1:17".loc))
     }
@@ -55,7 +60,7 @@ class TypeCheckerTest {
             }
             """
         )
-        assertEquals(listOf(), typeChecker.typeErrors)
+        assertEquals(listOf(), typeErrors)
         assertType("add(5, 10)", integer)
     }
 
@@ -63,11 +68,11 @@ class TypeCheckerTest {
     fun functionOverloading() {
         exec("function combine(a: Integer, b: Integer): Integer { a * b }")
         exec("function combine(a: String, b: String): String { a + b }")
-        assertEquals(listOf(), typeChecker.typeErrors)
+        assertEquals(listOf(), typeErrors)
         assertType("combine(\"wo\", \"rd\")", string)
-        assertEquals(listOf(), typeChecker.typeErrors)
+        assertEquals(listOf(), typeErrors)
         assertType("combine(2, 2)", integer)
-        assertEquals(listOf(), typeChecker.typeErrors)
+        assertEquals(listOf(), typeErrors)
     }
 
     @Test
@@ -106,9 +111,9 @@ class TypeCheckerTest {
         val choiceType = EnumType("Choice", setOf(SymbolType("'A"), integer))
         assertType("choice", choiceType)
         exec("choice = 'A")
-        assertEquals(listOf(), typeChecker.typeErrors)
+        assertEquals(listOf(), typeErrors)
         exec("choice = 5")
-        assertEquals(listOf(), typeChecker.typeErrors)
+        assertEquals(listOf(), typeErrors)
         exec("choice = 'B")
         assertTypeError(IncompatibleType(choiceType, SymbolType("'B"), "1:0-1:9".loc))
     }
@@ -135,7 +140,7 @@ class TypeCheckerTest {
             }
             """
         )
-        assertEquals(listOf(), typeChecker.typeErrors)
+        assertEquals(listOf(), typeErrors)
         exec(
             """
             function wrong(a: Integer): Bunch {
@@ -149,7 +154,7 @@ class TypeCheckerTest {
         val wrongType = EnumType("Inline", setOf(integer, SymbolType("'One"), string))
         assertEquals(
             listOf<TypeError>(IncompatibleType(bunchType, wrongType, "2:12-6:12".loc)),
-            typeChecker.typeErrors
+            typeErrors
         )
     }
 
@@ -167,7 +172,7 @@ class TypeCheckerTest {
             }
             """
         )
-        assertEquals(listOf(), typeChecker.typeErrors)
+        assertEquals(listOf(), typeErrors)
     }
 
     @Test
@@ -181,9 +186,9 @@ class TypeCheckerTest {
         val optType = EnumType("Opt", setOf(integer, SymbolType("'None")))
         assertType("maybe", optType)
         exec("maybe = 5")
-        assertEquals(listOf(), typeChecker.typeErrors)
+        assertEquals(listOf(), typeErrors)
         exec("maybe = 'None")
-        assertEquals(listOf(), typeChecker.typeErrors)
+        assertEquals(listOf(), typeErrors)
         exec("maybe = false")
         assertTypeError(IncompatibleType(optType, boolean, "1:0-1:8".loc))
     }
@@ -224,10 +229,10 @@ class TypeCheckerTest {
         assertTypeError(UndeclaredType("DoesNotExist", "1:0-1:36".loc))
 
         exec("data RightData { my: MyData }")
-        assertEquals(listOf(), typeChecker.typeErrors)
+        assertEquals(listOf(), typeErrors)
 
         exec("let r = RightData { my: MyData { name: \"Luna\", age: 2 } }")
-        assertEquals(listOf(), typeChecker.typeErrors)
+        assertEquals(listOf(), typeErrors)
 
         assertType("r", DataType("RightData", mapOf("my" to myDataType)))
         assertType("r.my", myDataType)
@@ -243,7 +248,7 @@ class TypeCheckerTest {
         exec("function introDeep(my: MyData): String { my.name + \", age \" + my.age }")
         assertType("r.intro()", string)
         assertType("r.my.introDeep()", string)
-        assertEquals(listOf(), typeChecker.typeErrors)
+        assertEquals(listOf(), typeErrors)
     }
 
     @Test
@@ -274,7 +279,7 @@ class TypeCheckerTest {
         )
         assertType("makeSpeak(Cat {})", animalType)
         assertType("makeSpeak(Dog {})", animalType)
-        assertEquals(listOf(), typeChecker.typeErrors)
+        assertEquals(listOf(), typeErrors)
 
         val robotType = DataType("Robot", emptyMap())
         assertType("makeSpeak(Robot {})", animalType)
@@ -283,17 +288,18 @@ class TypeCheckerTest {
 
     private fun assertType(code: String, expected: Type) {
         val parser = HappyParser(CommonTokenStream(HappyLexer(CharStreams.fromString(code))))
-        val result = typeChecker.visitExpression(parser.expression())
-        assertEquals(expected, result)
+        val expression = ParseTreeToAst().visitExpression(parser.expression())
+        assertEquals(expected, expression.type())
     }
 
     private fun exec(code: String) {
         val parser = HappyParser(CommonTokenStream(HappyLexer(CharStreams.fromString(code))))
-        typeChecker.visitSourceFile(parser.sourceFile())
+        val sourceFile = ParseTreeToAst().visitSourceFile(parser.sourceFile())
+        sourceFile.typeCheck()
     }
 
     private fun assertTypeError(expected: TypeError) {
-        assertEquals(listOf(expected), typeChecker.typeErrors)
-        typeChecker.typeErrors.clear()
+        assertEquals(listOf(expected), typeErrors)
+        typeErrors.clear()
     }
 }

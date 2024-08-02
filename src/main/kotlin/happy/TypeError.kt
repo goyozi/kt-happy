@@ -1,6 +1,6 @@
 package happy
 
-import org.antlr.v4.runtime.ParserRuleContext
+import happy.ast.AstNode
 
 sealed class TypeError
 
@@ -40,4 +40,12 @@ data class Loc(val startLine: Int, val startPos: Int, val endLine: Int, val endP
     }
 }
 
-val ParserRuleContext.loc get() = Loc(start.line, start.charPositionInLine, stop.line, stop.charPositionInLine)
+fun checkType(declaredType: Type, actualType: Type, node: AstNode) {
+    if (incompatibleTypes(declaredType, actualType)) {
+        typeErrors.add(IncompatibleType(declaredType, actualType, node.loc))
+    }
+}
+
+private fun incompatibleTypes(declaredType: Type, expressionType: Type): Boolean {
+    return !declaredType.assignableFrom(expressionType, typingScope)
+}

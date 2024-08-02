@@ -10,13 +10,9 @@ import kotlin.test.assertEquals
 
 class InterpreterTest {
 
-    lateinit var typeChecker: TypeChecker
-    lateinit var interpreter: Interpreter
-
     @BeforeEach
     fun setUp() {
-        typeChecker = TypeChecker()
-        interpreter = Interpreter()
+        resetContext()
     }
 
     @Test
@@ -203,16 +199,15 @@ class InterpreterTest {
 
     private fun assertExpression(code: String, expected: Any) {
         val parser = HappyParser(CommonTokenStream(HappyLexer(CharStreams.fromString(code))))
-        val expression = parser.expression()
-        typeChecker.visitExpression(expression)
-        val result = interpreter.visitExpression(expression)
-        assertEquals(expected, result)
+        val expression = ParseTreeToAst().visitExpression(parser.expression())
+        expression.type()
+        assertEquals(expected, expression.eval())
     }
 
     private fun exec(code: String) {
         val parser = HappyParser(CommonTokenStream(HappyLexer(CharStreams.fromString(code))))
-        val sourceFile = parser.sourceFile()
-        typeChecker.visitSourceFile(sourceFile)
-        interpreter.visitSourceFile(sourceFile)
+        val sourceFile = ParseTreeToAst().visitSourceFile(parser.sourceFile())
+        sourceFile.typeCheck()
+        sourceFile.eval()
     }
 }
