@@ -11,6 +11,10 @@ class Scope<T> {
         stack.add(Layer(parent))
     }
 
+    fun enterRaw(layer: Layer<T>) {
+        stack.add(layer)
+    }
+
     fun leave() {
         stack.removeLast()
     }

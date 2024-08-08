@@ -7,7 +7,9 @@ data class FunctionCall(val target: Expression, val arguments: List<Expression>,
     private val iioTypes = mutableMapOf<Expression, InterfaceType>()
 
     private lateinit var resolvedCall: Function
-    private lateinit var resolvedArguments: List<Expression>
+    private lateinit var resolvedReturnType: Type
+    private var objectArguments = mutableMapOf<String, Expression>()
+    private var intArguments = mutableMapOf<String, Expression>()
 
     override fun type(): Type {
         var functionType = target.type()
@@ -27,7 +29,7 @@ data class FunctionCall(val target: Expression, val arguments: List<Expression>,
 
         if (functionType.functions.size == 1) {
             val function = functionType.functions.single()
-            val returnType = function.returnType
+            resolvedReturnType = function.returnType
 
             for (i in function.arguments.indices) {
                 val declaredArgumentType = function.arguments[i].type
@@ -36,42 +38,69 @@ data class FunctionCall(val target: Expression, val arguments: List<Expression>,
             }
 
             populateContext(function, arguments)
-
-            return returnType
         } else {
             val function = functionType.getVariant(arguments.map { it.type }, typingScope) // todo: might fail badly!
+            resolvedReturnType = function.returnType
             populateContext(function, arguments)
-            return function.returnType
         }
+
+        return resolvedReturnType
     }
 
     private fun populateContext(function: Function, arguments: MutableList<Argument>) {
         for (i in arguments.indices) {
             val declaredType = function.arguments[i].type
             val actualType = arguments[i].type
+            val argumentExpression = arguments[i].value as Expression
+
             if (declaredType is InterfaceType && declaredType != actualType) {
-                iioTypes[arguments[i].value as Expression] = declaredType
+                iioTypes[argumentExpression] = declaredType
+            }
+
+            if (declaredType == integer) {
+                intArguments[function.arguments[i].name] = argumentExpression
+            } else {
+                objectArguments[function.arguments[i].name] = argumentExpression
             }
         }
 
         resolvedCall = function
-        resolvedArguments = arguments.map { it.value } as List<Expression>
     }
 
     override fun eval(): Any {
-        val arguments = Array<Any>(resolvedArguments.size) {}
+        if (resolvedReturnType == integer) return intEval()
 
-        for (it in arguments.indices) {
-            val expression = resolvedArguments[it]
+        evalArgumentsAndEnterScope()
+        val result = resolvedCall.invoke()
+        scope.leave()
+        return result
+    }
+
+    override fun intEval(): Int {
+        evalArgumentsAndEnterScope()
+        val result = resolvedCall.intInvoke()
+        scope.leave()
+        return result
+    }
+
+    private fun evalArgumentsAndEnterScope() {
+        val functionScope = Layer(resolvedCall.parentScope)
+
+        objectArguments.forEach { (name, expression) ->
             val iioType = iioTypes[expression]
-            if (iioType == null) {
-                arguments[it] = expression.eval()
+            val argValue = if (iioType == null) {
+                expression.eval()
             } else {
-                arguments[it] = toIIO(iioType, expression.eval())
+                toIIO(iioType, expression.eval())
             }
+            functionScope.define(name, argValue)
         }
 
-        return resolvedCall.invoke(arguments)
+        intArguments.forEach { (name, expression) ->
+            functionScope.define(name, expression.intEval())
+        }
+
+        scope.enterRaw(functionScope)
     }
 
     private fun toIIO(argumentType: InterfaceType, argumentValue: Any): IIO {

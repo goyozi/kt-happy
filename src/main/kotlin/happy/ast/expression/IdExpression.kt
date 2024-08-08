@@ -12,4 +12,6 @@ data class IdExpression(val id: String, override val loc: Loc) : Expression {
     }
 
     override fun eval() = scope.get(id)
+
+    override fun intEval() = scope.get(id) as Int
 }

@@ -11,5 +11,7 @@ data class Subtraction(val left: Expression, val right: Expression, override val
         right.type()
     }
 
-    override fun eval() = left.eval() as Int - right.eval() as Int
+    override fun eval() = intEval()
+
+    override fun intEval() = left.intEval() - right.intEval()
 }

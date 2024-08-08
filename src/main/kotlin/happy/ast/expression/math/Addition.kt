@@ -18,4 +18,6 @@ data class Addition(val left: Expression, val right: Expression, override val lo
         return if (resolvedType == string) left.eval() as String + right.eval()
         else left.eval() as Int + right.eval() as Int
     }
+
+    override fun intEval() = left.intEval() + right.intEval()
 }

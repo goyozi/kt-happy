@@ -49,19 +49,10 @@ data class InterfaceFunction(
 ) : Function {
     override lateinit var parentScope: Layer<Any>
 
-    override fun invoke(arguments: Array<Any>): Any {
-        scope.enter(parentScope)
-        this.arguments.forEachIndexed { i, at -> scope.define(at.name, arguments[i]) }
-        val resolved = (arguments.get(0) as IIO)
-            .getVariant(name, this.arguments.map { it.type }.drop(1), scope)
-        val result = resolved.invoke()
-        scope.leave()
-        return result
-    }
-
     override fun invoke(): Any {
-        // a virtual call always delegates to a concrete call
-        throw UnsupportedOperationException()
+        val resolved = (scope.get(arguments[0].name) as IIO)
+            .getVariant(name, this.arguments.map { it.type }.drop(1), scope)
+        return resolved.invoke()
     }
 }
 

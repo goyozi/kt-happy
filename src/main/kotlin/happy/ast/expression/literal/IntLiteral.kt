@@ -9,4 +9,6 @@ data class IntLiteral(val value: Int, override val loc: Loc) : Expression {
     override fun type() = integer
 
     override fun eval() = value
+
+    override fun intEval() = value
 }

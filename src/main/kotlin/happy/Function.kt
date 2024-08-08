@@ -10,15 +10,9 @@ interface Function {
 
     var parentScope: Layer<Any>
 
-    fun invoke(arguments: Array<Any>): Any {
-        scope.enter(parentScope)
-        this.arguments.forEachIndexed { i, at -> scope.define(at.name, arguments[i]) }
-        val result = invoke()
-        scope.leave()
-        return result
-    }
-
     fun invoke(): Any
+
+    fun intInvoke() = invoke() as Int
 }
 
 data class OverloadedFunction(override val name: String, val functions: List<Function>) : Type {
@@ -57,6 +51,11 @@ data class CustomFunction(
     override fun invoke(): Any {
         statements.forEach(Statement::eval)
         return returnExpression.eval()
+    }
+
+    override fun intInvoke(): Int {
+        statements.forEach(Statement::eval)
+        return returnExpression.intEval()
     }
 }
 

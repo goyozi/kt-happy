@@ -11,5 +11,5 @@ data class LesserEqual(val left: Expression, val right: Expression, override val
         right.type()
     }
 
-    override fun eval() = left.eval() as Int <= right.eval() as Int
+    override fun eval() = left.intEval() <= right.intEval()
 }

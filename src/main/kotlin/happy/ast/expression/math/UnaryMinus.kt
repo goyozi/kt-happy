@@ -10,5 +10,7 @@ data class UnaryMinus(val expression: Expression, override val loc: Loc) : Expre
         expression.type()
     }
 
-    override fun eval() = -(expression.eval() as Int)
+    override fun eval() = intEval()
+
+    override fun intEval() = -expression.intEval()
 }

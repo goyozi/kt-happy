@@ -22,4 +22,10 @@ data class IfExpression(
         return if (conditionMet) ifTrue.eval()
         else ifFalse.eval()
     }
+
+    override fun intEval(): Int {
+        val conditionMet = condition.eval() as Boolean
+        return if (conditionMet) ifTrue.intEval()
+        else ifFalse.intEval()
+    }
 }

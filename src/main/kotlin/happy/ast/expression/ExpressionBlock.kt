@@ -23,4 +23,10 @@ data class ExpressionBlock(
         statements.forEach { it.eval() }
         return returnExpression.eval().also { scope.leave() }
     }
+
+    override fun intEval(): Int {
+        scope.enter()
+        statements.forEach { it.eval() }
+        return returnExpression.intEval().also { scope.leave() }
+    }
 }

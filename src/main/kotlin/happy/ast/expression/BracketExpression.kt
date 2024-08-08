@@ -7,4 +7,6 @@ data class BracketExpression(val inner: Expression, override val loc: Loc) : Exp
     override fun type() = inner.type()
 
     override fun eval() = inner.eval()
+
+    override fun intEval() = inner.intEval()
 }

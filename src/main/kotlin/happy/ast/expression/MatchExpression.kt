@@ -31,4 +31,14 @@ data class MatchExpression(
         }
         return elseValue.eval()
     }
+
+    override fun intEval(): Int {
+        val matchValue = value.eval()
+        for (patternValue in patternValues) {
+            if (matchValue == patternValue.first.eval()) {
+                return patternValue.second.intEval()
+            }
+        }
+        return elseValue.intEval()
+    }
 }
