@@ -1,5 +1,5 @@
 function test(arg: String): String {
-  printLine("it " + arg)
+  printLine("it " + arg);
   arg
 }
 
@@ -9,7 +9,7 @@ interface Animal {
 }
 
 function makeSpeak(a: Animal): String {
-  printLine(speak(a))
-  printLine(a.speak("baby"))
+  printLine(speak(a));
+  printLine(a.speak("baby"));
   "done"
 }

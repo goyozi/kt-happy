@@ -108,7 +108,7 @@ class InterpreterTest {
             """
             {
               let x = 0;
-              for i in 1..3 { x = x + i };
+              for i in 1..3 { x = x + i; }
               x
             }
             """,
@@ -124,9 +124,9 @@ class InterpreterTest {
               let x = 0;
               let i = 0;
               while i < 3 {
-                i = i + 1
-                x = x + i
-              };
+                i = i + 1;
+                x = x + i;
+              }
               x
             }
             """,

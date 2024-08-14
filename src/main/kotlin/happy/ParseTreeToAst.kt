@@ -20,7 +20,7 @@ class ParseTreeToAst : HappyBaseVisitor<AstNode>() {
             ctx.importStatement().map { visitImportStatement(it) },
             ctx.typeDeclaration().map { visitTypeDeclaration(it) },
             ctx.function().map { visitFunction(it) },
-            ctx.action().map { visitAction(it) },
+            ctx.statement().map { visitStatement(it) },
             ctx.loc
         )
     }
@@ -61,7 +61,7 @@ class ParseTreeToAst : HappyBaseVisitor<AstNode>() {
     override fun visitFunction(ctx: HappyParser.FunctionContext): FunctionDeclaration {
         return FunctionDeclaration(
             visitFunctionSignature(ctx.sig),
-            ctx.action().map { visitAction(it) },
+            ctx.statement().map { visitStatement(it) },
             visitExpression(ctx.expression()),
             ctx.loc
         )
@@ -76,12 +76,16 @@ class ParseTreeToAst : HappyBaseVisitor<AstNode>() {
         )
     }
 
-    override fun visitAction(ctx: HappyParser.ActionContext): Statement {
-        return if (ctx.statement() != null) visitStatement(ctx.statement()) as Statement
-        else ExpressionStatement(visitExpression(ctx.expression()), ctx.loc)
+    override fun visitStatement(ctx: HappyParser.StatementContext): Statement = when {
+        ctx.variableDeclaration() != null -> visitVariableDeclaration(ctx.variableDeclaration())
+        ctx.variableAssignment() != null -> visitVariableAssignment(ctx.variableAssignment())
+        ctx.whileLoop() != null -> visitWhileLoop(ctx.whileLoop())
+        ctx.forLoop() != null -> visitForLoop(ctx.forLoop())
+        ctx.expressionStatement() != null -> ExpressionStatement(visitExpression(ctx.expressionStatement().expression()), ctx.loc)
+        else -> throw IllegalArgumentException(ctx.text)
     }
 
-    override fun visitVariableDeclaration(ctx: HappyParser.VariableDeclarationContext): AstNode {
+    override fun visitVariableDeclaration(ctx: HappyParser.VariableDeclarationContext): VariableDeclaration {
         return VariableDeclaration(
             ctx.ID().text,
             ctx.typeSpec()?.let { visitTypeSpec(it) },
@@ -89,17 +93,17 @@ class ParseTreeToAst : HappyBaseVisitor<AstNode>() {
         )
     }
 
-    override fun visitVariableAssignment(ctx: HappyParser.VariableAssignmentContext): AstNode {
+    override fun visitVariableAssignment(ctx: HappyParser.VariableAssignmentContext): VariableAssignment {
         return VariableAssignment(ctx.ID().text, visitExpression(ctx.expression()), ctx.loc)
     }
 
-    override fun visitWhileLoop(ctx: HappyParser.WhileLoopContext): AstNode {
-        return WhileLoop(visitExpression(ctx.expression()), ctx.action().map { visitAction(it) }, ctx.loc)
+    override fun visitWhileLoop(ctx: HappyParser.WhileLoopContext): WhileLoop {
+        return WhileLoop(visitExpression(ctx.expression()), ctx.statement().map { visitStatement(it) }, ctx.loc)
     }
 
-    override fun visitForLoop(ctx: HappyParser.ForLoopContext): AstNode {
+    override fun visitForLoop(ctx: HappyParser.ForLoopContext): ForLoop {
         val range = (ctx.INTEGER_LITERAL(0).text.toInt())..(ctx.INTEGER_LITERAL(1).text.toInt())
-        return ForLoop(ctx.ID().text, range, ctx.action().map { visitAction(it) }, ctx.loc)
+        return ForLoop(ctx.ID().text, range, ctx.statement().map { visitStatement(it) }, ctx.loc)
     }
 
     override fun visitNegation(ctx: HappyParser.NegationContext): AstNode {
@@ -216,7 +220,7 @@ class ParseTreeToAst : HappyBaseVisitor<AstNode>() {
     }
 
     override fun visitExpressionBlock(ctx: HappyParser.ExpressionBlockContext): ExpressionBlock {
-        return ExpressionBlock(ctx.action().map { visitAction(it) }, visitExpression(ctx.expression()), ctx.loc)
+        return ExpressionBlock(ctx.statement().map { visitStatement(it) }, visitExpression(ctx.expression()), ctx.loc)
     }
 
     override fun visitTypeSpec(ctx: HappyParser.TypeSpecContext): TypeAnnotation {

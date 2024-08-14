@@ -1,6 +1,6 @@
 grammar Happy;
 
-sourceFile: importStatement* (COMMENT | typeDeclaration | function | action)* EOF;
+sourceFile: importStatement* (COMMENT | typeDeclaration | function | statement)* EOF;
 
 importStatement: 'import' (paths+=ID '.')* '{' (symbols+=ID ',')* (symbols+=ID)? '}';
 
@@ -14,27 +14,28 @@ typeOrSymbol: typeSpec | symbol;
 
 interface: 'interface' name=ID '{' (sigs+=functionSignature)* '}';
 
-function: 'function' sig=functionSignature '{' action* expression '}';
+function: 'function' sig=functionSignature '{' statement* expression '}';
 
 functionSignature: name=ID '(' (arguments+=keyType ',')* (arguments+=keyType)? ')' ':' returnType=typeSpec;
 
 keyType: name=ID ':' type=typeSpec;
 
-action: (statement | expression) ';'?;
-
 statement
     : variableDeclaration
     | variableAssignment
     | whileLoop
-    | forLoop;
+    | forLoop
+    | expressionStatement;
 
-variableDeclaration: 'let' ID (':' typeSpec)? ('=' expression)?;
+variableDeclaration: 'let' ID (':' typeSpec)? ('=' expression)? ';';
 
-variableAssignment: ID '=' expression;
+variableAssignment: ID '=' expression ';';
 
-whileLoop: 'while' expression '{' action* '}';
+whileLoop: 'while' expression '{' statement* '}';
 
-forLoop: 'for' ID 'in' INTEGER_LITERAL '..' INTEGER_LITERAL '{' action* '}';
+forLoop: 'for' ID 'in' INTEGER_LITERAL '..' INTEGER_LITERAL '{' statement* '}';
+
+expressionStatement: expression ';';
 
 expression
     : expression postfixExpression #complexExpression
@@ -75,7 +76,7 @@ patternValue: pattern=expression ':' value=expression ',';
 
 matchElse: 'else' ':' expression;
 
-expressionBlock: '{' (action ';')* expression '}';
+expressionBlock: '{' statement* expression '}';
 
 typeSpec: type=ID ('<' genericType=ID '>')?;
 

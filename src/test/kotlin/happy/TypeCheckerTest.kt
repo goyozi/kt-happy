@@ -37,10 +37,10 @@ class TypeCheckerTest {
         assertType("{ let x = 5; x }", integer)
         assertEquals(listOf(), typeErrors)
         assertType("{ let x: String = 5; x }", string)
-        assertTypeError(IncompatibleType(string, integer, "1:2-1:18".loc))
-        exec("let x: UndeclaredType")
+        assertTypeError(IncompatibleType(string, integer, "1:2-1:19".loc))
+        exec("let x: UndeclaredType;")
         assertType("x", nothing)
-        assertTypeError(UndeclaredType("UndeclaredType", "1:0-1:7".loc))
+        assertTypeError(UndeclaredType("UndeclaredType", "1:0-1:21".loc))
     }
 
     @Test
@@ -48,7 +48,7 @@ class TypeCheckerTest {
         assertType("{ let x = 5; x = 10; x }", integer)
         assertEquals(listOf(), typeErrors)
         assertType("{ let x = 5; x = \"text\"; x }", integer)
-        assertTypeError(IncompatibleType(integer, string, "1:13-1:17".loc))
+        assertTypeError(IncompatibleType(integer, string, "1:13-1:23".loc))
     }
 
     @Test
@@ -105,17 +105,17 @@ class TypeCheckerTest {
         exec(
             """
             enum Choice { 'A, Integer }
-            let choice: Choice
+            let choice: Choice;
             """
         )
         val choiceType = EnumType("Choice", setOf(SymbolType("'A"), integer))
         assertType("choice", choiceType)
-        exec("choice = 'A")
+        exec("choice = 'A;")
         assertEquals(listOf(), typeErrors)
-        exec("choice = 5")
+        exec("choice = 5;")
         assertEquals(listOf(), typeErrors)
-        exec("choice = 'B")
-        assertTypeError(IncompatibleType(choiceType, SymbolType("'B"), "1:0-1:9".loc))
+        exec("choice = 'B;")
+        assertTypeError(IncompatibleType(choiceType, SymbolType("'B"), "1:0-1:11".loc))
     }
 
     @Test
@@ -180,17 +180,17 @@ class TypeCheckerTest {
         exec(
             """
             enum Opt<T> { T, 'None }
-            let maybe: Opt<Integer>
+            let maybe: Opt<Integer>;
             """
         )
         val optType = EnumType("Opt", setOf(integer, SymbolType("'None")))
         assertType("maybe", optType)
-        exec("maybe = 5")
+        exec("maybe = 5;")
         assertEquals(listOf(), typeErrors)
-        exec("maybe = 'None")
+        exec("maybe = 'None;")
         assertEquals(listOf(), typeErrors)
-        exec("maybe = false")
-        assertTypeError(IncompatibleType(optType, boolean, "1:0-1:8".loc))
+        exec("maybe = false;")
+        assertTypeError(IncompatibleType(optType, boolean, "1:0-1:13".loc))
     }
 
     @Test
@@ -205,7 +205,7 @@ class TypeCheckerTest {
         exec("data MyData { name: String, age: Integer }")
         val myDataType = DataType("MyData", mapOf("name" to string, "age" to integer))
         assertType("MyData { name: \"Luna\", age: 2 }", myDataType)
-        exec("let m = MyData { name: \"Luna\", age: 2 }")
+        exec("let m = MyData { name: \"Luna\", age: 2 };")
         assertType("m", myDataType)
         assertType("m.name", string)
         assertType("m.age", integer)
@@ -213,16 +213,16 @@ class TypeCheckerTest {
         assertType("m.breed", nothing)
         assertTypeError(UndeclaredField("breed", myDataType, "1:1-1:2".loc))
 
-        exec("NotMyData { name: \"Luna\", age: \"2\" }")
+        exec("NotMyData { name: \"Luna\", age: \"2\" };")
         assertTypeError(UndeclaredType("NotMyData", "1:0-1:35".loc))
 
-        exec("MyData { name: \"Luna\", age: \"2\" }")
+        exec("MyData { name: \"Luna\", age: \"2\" };")
         assertTypeError(IncompatibleType(integer, string, "1:0-1:32".loc))
 
-        exec("MyData { name: \"Luna\" }")
+        exec("MyData { name: \"Luna\" };")
         assertTypeError(UninitializedField("age", myDataType, "1:0-1:22".loc))
 
-        exec("MyData { name: \"Luna\", age: 2, breed: \"Aussie\" }")
+        exec("MyData { name: \"Luna\", age: 2, breed: \"Aussie\" };")
         assertTypeError(UndeclaredField("breed", myDataType, "1:0-1:47".loc))
 
         exec("data WrongData { oops: DoesNotExist }")
@@ -231,7 +231,7 @@ class TypeCheckerTest {
         exec("data RightData { my: MyData }")
         assertEquals(listOf(), typeErrors)
 
-        exec("let r = RightData { my: MyData { name: \"Luna\", age: 2 } }")
+        exec("let r = RightData { my: MyData { name: \"Luna\", age: 2 } };")
         assertEquals(listOf(), typeErrors)
 
         assertType("r", DataType("RightData", mapOf("my" to myDataType)))
@@ -241,7 +241,7 @@ class TypeCheckerTest {
         assertType("r.my.breed", nothing)
         assertTypeError(UndeclaredField("breed", myDataType, "1:4-1:5".loc))
 
-        exec("let r = RightData { my: MyData { name: \"Luna\", age: 2, breed: \"Aussie\" } }")
+        exec("let r = RightData { my: MyData { name: \"Luna\", age: 2, breed: \"Aussie\" } };")
         assertTypeError(UndeclaredField("breed", myDataType, "1:24-1:71".loc))
 
         exec("function intro(right: RightData): String { right.my.name + \", age \" + right.my.age }")
@@ -268,7 +268,7 @@ class TypeCheckerTest {
             data Robot {}
 
             function makeSpeak(a: Animal): Animal {
-              printLine(a.speak())
+              printLine(a.speak());
               a
             }
             """

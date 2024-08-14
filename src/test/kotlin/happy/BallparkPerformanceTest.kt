@@ -28,7 +28,7 @@ class BallparkPerformanceTest {
         )
         val expression = parseExpression("fib(10)")
         assertExpression(expression, 55)
-        exec("fib(20)")
+        exec("fib(20);")
 
         assertEquals(55, fib(10))
         fib(20)
