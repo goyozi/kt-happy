@@ -34,20 +34,20 @@ class TypeCheckerTest {
     @Test
     fun letStatement() {
         exec("")
-        assertType("{ let x = 5; x }", integer)
+        assertType("{ var x = 5; x }", integer)
         assertEquals(listOf(), typeErrors)
-        assertType("{ let x: String = 5; x }", string)
+        assertType("{ var x: String = 5; x }", string)
         assertTypeError(IncompatibleType(string, integer, "1:2-1:19".loc))
-        exec("let x: UndeclaredType;")
+        exec("var x: UndeclaredType;")
         assertType("x", nothing)
         assertTypeError(UndeclaredType("UndeclaredType", "1:0-1:21".loc))
     }
 
     @Test
     fun assignmentStatement() {
-        assertType("{ let x = 5; x = 10; x }", integer)
+        assertType("{ var x = 5; x = 10; x }", integer)
         assertEquals(listOf(), typeErrors)
-        assertType("{ let x = 5; x = \"text\"; x }", integer)
+        assertType("{ var x = 5; x = \"text\"; x }", integer)
         assertTypeError(IncompatibleType(integer, string, "1:13-1:23".loc))
     }
 
@@ -55,7 +55,7 @@ class TypeCheckerTest {
     fun functionCall() {
         exec(
             """
-            function add(a: Integer, b: Integer): Integer {
+            func add(a: Integer, b: Integer): Integer {
               a + b
             }
             """
@@ -66,8 +66,8 @@ class TypeCheckerTest {
 
     @Test
     fun functionOverloading() {
-        exec("function combine(a: Integer, b: Integer): Integer { a * b }")
-        exec("function combine(a: String, b: String): String { a + b }")
+        exec("func combine(a: Integer, b: Integer): Integer { a * b }")
+        exec("func combine(a: String, b: String): String { a + b }")
         assertEquals(listOf(), typeErrors)
         assertType("combine(\"wo\", \"rd\")", string)
         assertEquals(listOf(), typeErrors)
@@ -79,7 +79,7 @@ class TypeCheckerTest {
     fun functionArgumentTypeCheck() {
         exec(
             """
-            function add(a: Integer, b: Integer): Integer {
+            func add(a: Integer, b: Integer): Integer {
               a + b
             }
             """
@@ -92,7 +92,7 @@ class TypeCheckerTest {
     fun functionReturnTypeCheck() {
         exec(
             """
-            function add(a: Integer, b: Integer): Integer {
+            func add(a: Integer, b: Integer): Integer {
               "not a number"
             }
             """
@@ -105,7 +105,7 @@ class TypeCheckerTest {
         exec(
             """
             enum Choice { 'A, Integer }
-            let choice: Choice;
+            var choice: Choice;
             """
         )
         val choiceType = EnumType("Choice", setOf(SymbolType("'A"), integer))
@@ -134,7 +134,7 @@ class TypeCheckerTest {
         )
         exec(
             """
-            function correct(a: Integer): Bunch {
+            func correct(a: Integer): Bunch {
               if a > 3 { 4 }
               else { 'One }
             }
@@ -143,7 +143,7 @@ class TypeCheckerTest {
         assertEquals(listOf(), typeErrors)
         exec(
             """
-            function wrong(a: Integer): Bunch {
+            func wrong(a: Integer): Bunch {
               if a > 3 { 4 }
               else if a > 0 { 'One }
               else { "negative" }
@@ -167,7 +167,7 @@ class TypeCheckerTest {
         )
         exec(
             """
-            function returnIfSmall(num: Integer): Option<Integer> {
+            func returnIfSmall(num: Integer): Option<Integer> {
                 if num <= 5 { num } else { 'None }
             }
             """
@@ -180,7 +180,7 @@ class TypeCheckerTest {
         exec(
             """
             enum Opt<T> { T, 'None }
-            let maybe: Opt<Integer>;
+            var maybe: Opt<Integer>;
             """
         )
         val optType = EnumType("Opt", setOf(integer, SymbolType("'None")))
@@ -205,7 +205,7 @@ class TypeCheckerTest {
         exec("data MyData { name: String, age: Integer }")
         val myDataType = DataType("MyData", mapOf("name" to string, "age" to integer))
         assertType("MyData { name: \"Luna\", age: 2 }", myDataType)
-        exec("let m = MyData { name: \"Luna\", age: 2 };")
+        exec("var m = MyData { name: \"Luna\", age: 2 };")
         assertType("m", myDataType)
         assertType("m.name", string)
         assertType("m.age", integer)
@@ -231,7 +231,7 @@ class TypeCheckerTest {
         exec("data RightData { my: MyData }")
         assertEquals(listOf(), typeErrors)
 
-        exec("let r = RightData { my: MyData { name: \"Luna\", age: 2 } };")
+        exec("var r = RightData { my: MyData { name: \"Luna\", age: 2 } };")
         assertEquals(listOf(), typeErrors)
 
         assertType("r", DataType("RightData", mapOf("my" to myDataType)))
@@ -241,11 +241,11 @@ class TypeCheckerTest {
         assertType("r.my.breed", nothing)
         assertTypeError(UndeclaredField("breed", myDataType, "1:4-1:5".loc))
 
-        exec("let r = RightData { my: MyData { name: \"Luna\", age: 2, breed: \"Aussie\" } };")
+        exec("var r = RightData { my: MyData { name: \"Luna\", age: 2, breed: \"Aussie\" } };")
         assertTypeError(UndeclaredField("breed", myDataType, "1:24-1:71".loc))
 
-        exec("function intro(right: RightData): String { right.my.name + \", age \" + right.my.age }")
-        exec("function introDeep(my: MyData): String { my.name + \", age \" + my.age }")
+        exec("func intro(right: RightData): String { right.my.name + \", age \" + right.my.age }")
+        exec("func introDeep(my: MyData): String { my.name + \", age \" + my.age }")
         assertType("r.intro()", string)
         assertType("r.my.introDeep()", string)
         assertEquals(listOf(), typeErrors)
@@ -260,14 +260,14 @@ class TypeCheckerTest {
             }
 
             data Cat {}
-            function speak(c: Cat): String { "meow" }
+            func speak(c: Cat): String { "meow" }
 
             data Dog {}
-            function speak(d: Dog): String { "woof" }
+            func speak(d: Dog): String { "woof" }
             
             data Robot {}
 
-            function makeSpeak(a: Animal): Animal {
+            func makeSpeak(a: Animal): Animal {
               printLine(a.speak());
               a
             }

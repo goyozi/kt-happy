@@ -55,8 +55,8 @@ class InterpreterTest {
         assertExpression(
             """
             {
-              let x = 1;
-              let y = 2;
+              var x = 1;
+              var y = 2;
               x + y
             }
             """, 3
@@ -107,7 +107,7 @@ class InterpreterTest {
         assertExpression(
             """
             {
-              let x = 0;
+              var x = 0;
               for i in 1..3 { x = x + i; }
               x
             }
@@ -121,8 +121,8 @@ class InterpreterTest {
         assertExpression(
             """
             {
-              let x = 0;
-              let i = 0;
+              var x = 0;
+              var i = 0;
               while i < 3 {
                 i = i + 1;
                 x = x + i;
@@ -138,7 +138,7 @@ class InterpreterTest {
     fun functionCall() {
         exec(
             """
-            function add(a: Integer, b: Integer): Integer {
+            func add(a: Integer, b: Integer): Integer {
               a + b
             }
             """
@@ -148,7 +148,7 @@ class InterpreterTest {
 
         exec(
             """
-            function fib(n: Integer): Integer {
+            func fib(n: Integer): Integer {
               if n < 2 { n }
               else { fib(n - 1) + fib(n - 2) }
             }
@@ -159,8 +159,8 @@ class InterpreterTest {
 
     @Test
     fun functionOverloading() {
-        exec("function combine(a: Integer, b: Integer): Integer { a * b }")
-        exec("function combine(a: String, b: String): String { a + b }")
+        exec("func combine(a: Integer, b: Integer): Integer { a * b }")
+        exec("func combine(a: String, b: String): String { a + b }")
         assertExpression("combine(\"wo\", \"rd\")", "word")
         assertExpression("combine(2, 5)", 10)
     }
@@ -181,14 +181,14 @@ class InterpreterTest {
             }
 
             data Cat {}
-            function speak(c: Cat): String { "meow" }
+            func speak(c: Cat): String { "meow" }
 
             data Dog {}
-            function speak(d: Dog): String { "woof" }
+            func speak(d: Dog): String { "woof" }
             
             data Robot {}
 
-            function makeSpeak(a: Animal): String {
+            func makeSpeak(a: Animal): String {
               a.speak()
             }
             """

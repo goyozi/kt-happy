@@ -19,19 +19,19 @@ class ScopeTest {
 
     @Test
     fun fileScope() {
-        exec("let x = 5;")
+        exec("var x = 5;")
         assertExpression("x", 5)
 
         val importFile = File("build/tmp/example.happy")
         try {
             importFile.writeText(
                 """
-                let y = 10;
+                var y = 10;
                 
-                function visible(): Integer { y }
-                function invisible(): String { "can't call me" }
-                //function wrong(): Integer { x }
-                function timesFive(z: Integer): Integer { z * 5 }
+                func visible(): Integer { y }
+                func invisible(): String { "can't call me" }
+                //func wrong(): Integer { x }
+                func timesFive(z: Integer): Integer { z * 5 }
             """
             )
             exec("import build.tmp.example.{visible, timesFive}")
@@ -50,63 +50,63 @@ class ScopeTest {
 
     @Test
     fun blockScope() {
-        exec("let x = 5;")
+        exec("var x = 5;")
         assertExpression("{ x }", 5)
         assertExpression("{ { x } }", 5)
         assertExpression("{ x = 10; x }", 10)
         assertExpression("x", 10)
-        assertExpression("{ let x = 15; x }", 15)
+        assertExpression("{ var x = 15; x }", 15)
         assertExpression("x", 10)
-        assertExpression("{ x = 20; { let x = 25; x } }", 25)
+        assertExpression("{ x = 20; { var x = 25; x } }", 25)
         assertExpression("x", 20)
-        assertTypeError("{ let y = 5; y }; y;", UnknownIdentifier("y", "1:18-1:18".loc))
+        assertTypeError("{ var y = 5; y }; y;", UnknownIdentifier("y", "1:18-1:18".loc))
     }
 
     @Test
     fun functionScope() {
-        exec("let x = 5;")
-        exec("function getx(): Integer { x }")
+        exec("var x = 5;")
+        exec("func getx(): Integer { x }")
         assertExpression("getx()", 5)
-        exec("function setx(): Integer { x = 10; x }")
+        exec("func setx(): Integer { x = 10; x }")
         assertExpression("setx()", 10)
         assertExpression("x", 10)
-        exec("function shadowx(): Integer { let x = 15; x }")
+        exec("func shadowx(): Integer { var x = 15; x }")
         assertExpression("shadowx()", 15)
         assertExpression("x", 10)
-        exec("function argshadowx(x: Integer): Integer { x = 20; x }")
+        exec("func argshadowx(x: Integer): Integer { x = 20; x }")
         assertExpression("argshadowx(x)", 20)
         assertExpression("x", 10)
-        exec("function leftovers(y: Integer): Integer { let z = y + 5; z }")
+        exec("func leftovers(y: Integer): Integer { var z = y + 5; z }")
         assertThrows<IllegalStateException> { exec("leftovers(x); y;") }
         assertThrows<IllegalStateException> { exec("leftovers(x); z;") }
-        exec("function wrong(): Integer { invisible }")
-        exec("function crossover(): Integer { let invisible = 5; wrong() }")
+        exec("func wrong(): Integer { invisible }")
+        exec("func crossover(): Integer { var invisible = 5; wrong() }")
         assertThrows<IllegalStateException> { exec("crossover();") }
     }
 
     @Test
     fun forLoopScope() {
-        exec("let i = 42;")
-        exec("let x = 5;")
+        exec("var i = 42;")
+        exec("var x = 5;")
         exec("for i in 1..5 { x = x + i; }")
         assertExpression("i", 42)
         assertExpression("x", 20)
-        exec("for i in 1..5 { let x = x + i; }")
+        exec("for i in 1..5 { var x = x + i; }")
         assertExpression("x", 20)
         assertThrows<IllegalStateException> { exec("for j in 1..5 {} j;") }
-        assertThrows<IllegalStateException> { exec("for j in 1..5 { let y = 5; } y;") }
+        assertThrows<IllegalStateException> { exec("for j in 1..5 { var y = 5; } y;") }
     }
 
     @Test
     fun whileLoopScope() {
-        exec("let x = 5;")
+        exec("var x = 5;")
         exec("while x < 10 { x = x + 1; }")
         assertExpression("x", 10)
         exec(
             """
-            let stop = false;
+            var stop = false;
             while !stop {
-              let x = 15;
+              var x = 15;
               stop = true;
             }
         """
@@ -115,9 +115,9 @@ class ScopeTest {
         assertThrows<IllegalStateException> {
             exec(
                 """
-                let stop = false;
+                var stop = false;
                 while !stop {
-                  let y = 5;
+                  var y = 5;
                   stop = true;
                 }
                 y;

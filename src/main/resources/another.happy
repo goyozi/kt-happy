@@ -1,4 +1,4 @@
-function test(arg: String): String {
+func test(arg: String): String {
   printLine("it " + arg);
   arg
 }
@@ -8,7 +8,7 @@ interface Animal {
   speak(s: String): String
 }
 
-function makeSpeak(a: Animal): String {
+func makeSpeak(a: Animal): String {
   printLine(speak(a));
   printLine(a.speak("baby"));
   "done"

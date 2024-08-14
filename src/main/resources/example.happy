@@ -2,10 +2,10 @@ import src.main.resources.another.{test, makeSpeak}
 
 test("works");
 
-let a = 1;
-let b = a + 1;
+var a = 1;
+var b = a + 1;
 
-function add(a: Integer, b: Integer): Integer {
+func add(a: Integer, b: Integer): Integer {
   printLine("adding " + a + " to " + b);
   a + b
 }
@@ -17,7 +17,7 @@ printLine(a.add(b).add(b));
 
 printLine("Hello, World!");
 
-function print(s: String): String {
+func print(s: String): String {
   printLine(s);
   s
 }
@@ -32,7 +32,7 @@ if a > 0 {
   printLine("trouble!")
 };
 
-let name = "Happy Lang";
+var name = "Happy Lang";
 
 if name != "Unhappy Lang" {
   printLine("I'm a Happy dev!")
@@ -51,7 +51,7 @@ data Cat {
   age: Integer
 }
 
-let tom = Cat { name: "Tom", age: 4 };
+var tom = Cat { name: "Tom", age: 4 };
 printLine(tom.name);
 printLine(tom.age == 4);
 
@@ -59,7 +59,7 @@ for i in 1..3 {
   printLine("iteration " + i);
 }
 
-//let name: String = 123
+//var name: String = 123
 
 tom;
 (5 + 3);
@@ -67,14 +67,14 @@ add((5 + ((3))), 2);
 
 enum Wow { Integer, String, 'None }
 
-let x: Wow = 5;
+var x: Wow = 5;
 printLine(x);
 x = "I'm a text now";
 printLine(x);
 x = 'None;
 printLine(x);
 
-function check(num: Integer): Wow {
+func check(num: Integer): Wow {
   if num <= 5 { num }
   else if num <= 100 { "it's a big one" }
   else { 'None }
@@ -86,11 +86,11 @@ printLine(check(101));
 
 enum Option<T> { T, 'None }
 
-function returnIfSmall(num: Integer): Option<Integer> {
+func returnIfSmall(num: Integer): Option<Integer> {
   if num <= 5 { num } else { 'None }
 }
 
-function noneToFortyTwo(opt: Option<Integer>): Integer {
+func noneToFortyTwo(opt: Option<Integer>): Integer {
   if opt == 'None { 42 } else { opt as Integer }
 }
 
@@ -99,24 +99,24 @@ printLine(noneToFortyTwo(returnIfSmall(100)));
 printLine(noneToFortyTwo(5));
 printLine(noneToFortyTwo('None));
 
-let matched = match 5 {
+var matched = match 5 {
   3: "three",
   2 + 3: "two plus three",
   else: "math is broken"
 };
 printLine(matched);
 
-function add(s: String, ss: String): String {
+func add(s: String, ss: String): String {
   "string sum: " + s + ss
 }
 printLine(add("hello, ", "world"));
 
-function speak(c: Cat): String { "meow" }
-function speak(c: Cat, s: String): String { "meow " + s + " meow" }
+func speak(c: Cat): String { "meow" }
+func speak(c: Cat, s: String): String { "meow " + s + " meow" }
 
 data Dog {}
-function speak(d: Dog): String { "woof" }
-function speak(d: Dog, s: String): String { "woof " + s + " woof" }
+func speak(d: Dog): String { "woof" }
+func speak(d: Dog, s: String): String { "woof " + s + " woof" }
 
 makeSpeak(tom);
 makeSpeak(Dog {});
@@ -124,7 +124,7 @@ makeSpeak(Dog {});
 tom.makeSpeak();
 Dog{}.makeSpeak();
 
-function printLine(s: String, ss: String): String {
+func printLine(s: String, ss: String): String {
   printLine("s: " + s);
   printLine("ss: " + ss);
   "done"

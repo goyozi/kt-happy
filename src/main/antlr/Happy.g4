@@ -14,7 +14,7 @@ typeOrSymbol: typeSpec | symbol;
 
 interface: 'interface' name=ID '{' (sigs+=functionSignature)* '}';
 
-function: 'function' sig=functionSignature '{' statement* expression '}';
+function: 'func' sig=functionSignature '{' statement* expression '}';
 
 functionSignature: name=ID '(' (arguments+=keyType ',')* (arguments+=keyType)? ')' ':' returnType=typeSpec;
 
@@ -27,7 +27,7 @@ statement
     | forLoop
     | expressionStatement;
 
-variableDeclaration: 'let' ID (':' typeSpec)? ('=' expression)? ';';
+variableDeclaration: 'var' ID (':' typeSpec)? ('=' expression)? ';';
 
 variableAssignment: ID '=' expression ';';
 
